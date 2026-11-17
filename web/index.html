@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <!-- Se reemplaza con --base-href al compilar (el backend la sirve en /app/). -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="description" content="Tu plan, horarios y progreso en Yara Jump.">
+  <meta name="theme-color" content="#D6247A">
+
+  <!-- iPhone: al usar "Agregar a pantalla de inicio" abre a pantalla completa, sin barra del navegador -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Yara Jump">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json">
+  <title>Yara Jump</title>
+
+  <style>
+    html, body { margin: 0; height: 100%; background: #F7F4FA; }
+    #splash {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 24px;
+      font-family: -apple-system, system-ui, sans-serif; color: #6E6880;
+      transition: opacity .3s;
+    }
+    #splash img { width: 112px; height: 112px; border-radius: 26px; box-shadow: 0 8px 24px rgba(106,27,154,.15); }
+    #splash .bar { width: 120px; height: 4px; border-radius: 2px; background: #E8E2F0; overflow: hidden; }
+    #splash .bar::after {
+      content: ""; display: block; width: 40%; height: 100%; background: #D6247A; border-radius: 2px;
+      animation: carga 1s ease-in-out infinite;
+    }
+    @keyframes carga { 0% { transform: translateX(-100%); } 100% { transform: translateX(250%); } }
+  </style>
+</head>
+<body>
+  <div id="splash">
+    <img src="icons/Icon-192.png" alt="Yara Jump">
+    <div class="bar"></div>
+  </div>
+  <script>
+    // Quita el splash cuando Flutter pinta su primer frame.
+    window.addEventListener('flutter-first-frame', function () {
+      var s = document.getElementById('splash');
+      if (!s) return;
+      s.style.opacity = '0';
+      setTimeout(function () { s.remove(); }, 300);
+    });
+  </script>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

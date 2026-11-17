@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
@@ -46,10 +45,11 @@ class ApiClient {
   Future<dynamic> patch(String path, [Object? body]) => _send('PATCH', path, body: body);
   Future<dynamic> delete(String path) => _send('DELETE', path);
 
-  Future<dynamic> upload(String path, String field, File file) async {
+  /// Sube un archivo como multipart. Usa bytes (no rutas) para que funcione también en web.
+  Future<dynamic> upload(String path, String field, List<int> bytes, String filename) async {
     final req = http.MultipartRequest('POST', Uri.parse('$baseUrl$path'))
       ..headers.addAll(_headers())
-      ..files.add(await http.MultipartFile.fromPath(field, file.path));
+      ..files.add(http.MultipartFile.fromBytes(field, bytes, filename: filename));
     return _run(() => _http.send(req));
   }
 
@@ -70,11 +70,10 @@ class ApiClient {
     final http.StreamedResponse resp;
     try {
       resp = await call().timeout(const Duration(seconds: 20));
-    } on SocketException {
-      throw ApiException(null, 'No hay conexión con el servidor');
     } on TimeoutException {
       throw ApiException(null, 'El servidor tardó demasiado en responder');
     } on http.ClientException {
+      // En móvil los SocketException llegan envueltos como ClientException; en web es el único tipo.
       throw ApiException(null, 'No hay conexión con el servidor');
     }
 

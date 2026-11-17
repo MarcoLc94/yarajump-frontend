@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
 import '../models/cliente.dart';
@@ -31,8 +29,8 @@ class PerfilRepository {
         if (fechaNacimiento != null) 'fechaNacimiento': Fechas.api(fechaNacimiento),
       });
 
-  Future<String> subirFoto(File archivo) async {
-    final r = await _api.upload('/me/foto', 'foto', archivo) as Map<String, dynamic>;
+  Future<String> subirFoto(List<int> bytes, String nombreArchivo) async {
+    final r = await _api.upload('/me/foto', 'foto', bytes, nombreArchivo) as Map<String, dynamic>;
     return r['fotoUrl'] as String;
   }
 

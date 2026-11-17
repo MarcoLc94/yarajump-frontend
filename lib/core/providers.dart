@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 import '../data/models/cliente.dart';
 import '../data/models/horario.dart';
@@ -34,6 +35,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> loginGoogle() async => state = AsyncData(await _repo.loginGoogle());
+  Future<void> loginGoogleCuenta(GoogleSignInAccount cuenta) async =>
+      state = AsyncData(await _repo.loginGoogleCuenta(cuenta));
   Future<void> login(String email, String password) async => state = AsyncData(await _repo.login(email, password));
 
   Future<void> registrar({required String nombre, required String email, required String password}) async =>

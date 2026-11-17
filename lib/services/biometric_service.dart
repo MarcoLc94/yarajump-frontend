@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -14,6 +15,7 @@ class BiometricService {
   final _auth = LocalAuthentication();
 
   Future<bool> disponible() async {
+    if (kIsWeb) return false; // local_auth no tiene implementación web
     try {
       final soporta = await _auth.isDeviceSupported();
       final puede = await _auth.canCheckBiometrics;

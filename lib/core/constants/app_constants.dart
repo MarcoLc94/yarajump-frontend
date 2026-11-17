@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class AppConstants {
   AppConstants._();
 
@@ -6,7 +8,12 @@ class AppConstants {
   /// URL de la API en Go. Se pasa con --dart-define-from-file=env/dev.json
   /// - Emulador Android → http://10.0.2.2:8080 (es el localhost de tu PC)
   /// - Celular físico   → http://<IP-de-tu-PC>:8080  o la URL de Railway
-  static const apiUrl = String.fromEnvironment('API_URL', defaultValue: 'http://10.0.2.2:8080');
+  /// - Web (PWA)        → si no se pasa API_URL, usa el mismo dominio que sirve la página
+  static const _apiUrlEnv = String.fromEnvironment('API_URL');
+  static String get apiUrl {
+    if (_apiUrlEnv.isNotEmpty) return _apiUrlEnv;
+    return kIsWeb ? Uri.base.origin : 'http://10.0.2.2:8080';
+  }
 
   /// "Web client ID" de Google Cloud. Es necesario para que Google Sign-In devuelva un ID token.
   static const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');

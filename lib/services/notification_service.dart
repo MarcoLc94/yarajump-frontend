@@ -21,6 +21,8 @@ class NotificationService {
   );
 
   Future<void> init() async {
+    // En la PWA no hay push por ahora (requiere Web Push + VAPID; en iPhone solo con la app instalada).
+    if (kIsWeb) return;
     try {
       await Firebase.initializeApp();
       disponible = true;

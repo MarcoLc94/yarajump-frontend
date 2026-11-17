@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -77,7 +75,7 @@ class _PerfilFormState extends ConsumerState<_PerfilForm> {
 
     setState(() => _subiendo = true);
     try {
-      await ref.read(perfilRepositoryProvider).subirFoto(File(img.path));
+      await ref.read(perfilRepositoryProvider).subirFoto(await img.readAsBytes(), img.name);
       ref.invalidate(miClienteProvider);
     } catch (e) {
       if (mounted) mostrarError(context, e);

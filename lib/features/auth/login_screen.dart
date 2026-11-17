@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -5,8 +8,10 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/providers.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/repositories/auth_repository.dart';
 import '../shared/widgets/async_body.dart';
 import '../shared/widgets/ui.dart';
+import 'google_web/google_web_button.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -22,11 +27,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _cargando = false;
   bool _verPassword = false;
 
+  // Solo web: el botón de Google avisa por authenticationEvents en vez de devolver la cuenta.
+  Future<void>? _googleWebListo;
+  StreamSubscription<GoogleSignInAuthenticationEvent>? _googleWebSub;
+
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb && AuthRepository.googleWebDisponible) {
+      _googleWebListo = ref.read(authRepositoryProvider).initGoogle().then((_) {
+        _googleWebSub = GoogleSignIn.instance.authenticationEvents.listen(_onGoogleWeb, onError: _onGoogleWebError);
+      });
+    }
+  }
+
   @override
   void dispose() {
+    _googleWebSub?.cancel();
     _email.dispose();
     _password.dispose();
     super.dispose();
+  }
+
+  void _onGoogleWeb(GoogleSignInAuthenticationEvent e) {
+    if (e is! GoogleSignInAuthenticationEventSignIn || _cargando || !mounted) return;
+    _entrar(() => ref.read(sessionProvider.notifier).loginGoogleCuenta(e.user));
+  }
+
+  void _onGoogleWebError(Object e) {
+    if (!mounted) return;
+    if (e is GoogleSignInException) {
+      if (e.code != GoogleSignInExceptionCode.canceled) mostrarError(context, e.description ?? e.code.name);
+    } else {
+      mostrarError(context, e);
+    }
   }
 
   Future<void> _entrar(Future<void> Function() login) async {
@@ -115,21 +149,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white))
                         : const Text('Entrar'),
                   ),
-                  const SizedBox(height: 20),
-                  Row(children: [
-                    const Expanded(child: Divider()),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text('o', style: t.bodyMedium?.copyWith(color: AppColors.textoSuave)),
-                    ),
-                    const Expanded(child: Divider()),
-                  ]),
-                  const SizedBox(height: 20),
-                  OutlinedButton.icon(
-                    onPressed: _cargando ? null : () => _entrar(session.loginGoogle),
-                    icon: const _GoogleG(),
-                    label: const Text('Continuar con Google'),
-                  ),
+                  if (!kIsWeb || AuthRepository.googleWebDisponible) ...[
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Text('o', style: t.bodyMedium?.copyWith(color: AppColors.textoSuave)),
+                      ),
+                      const Expanded(child: Divider()),
+                    ]),
+                    const SizedBox(height: 20),
+                    if (kIsWeb)
+                      _botonGoogleWeb(t)
+                    else
+                      OutlinedButton.icon(
+                        onPressed: _cargando ? null : () => _entrar(session.loginGoogle),
+                        icon: const _GoogleG(),
+                        label: const Text('Continuar con Google'),
+                      ),
+                  ],
                   const SizedBox(height: 28),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Text('¿No tienes cuenta?', style: t.bodyMedium),
@@ -148,6 +187,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
+
+  /// En web Google exige su propio botón (no se puede abrir el login desde uno nuestro).
+  Widget _botonGoogleWeb(TextTheme t) => FutureBuilder<void>(
+        future: _googleWebListo,
+        builder: (context, snap) {
+          if (snap.hasError) {
+            return Text('No se pudo cargar el acceso con Google',
+                textAlign: TextAlign.center, style: t.bodyMedium?.copyWith(color: AppColors.textoSuave));
+          }
+          if (snap.connectionState != ConnectionState.done) {
+            return const SizedBox(
+                height: 44, child: Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))));
+          }
+          return LayoutBuilder(
+            builder: (context, c) => Center(
+              child: IgnorePointer(
+                ignoring: _cargando,
+                child: Opacity(opacity: _cargando ? 0.5 : 1, child: googleWebButton(width: c.maxWidth)),
+              ),
+            ),
+          );
+        },
+      );
 }
 
 /// "G" de Google sin depender de un asset.

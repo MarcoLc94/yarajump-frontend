@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../core/api/api_client.dart';
@@ -16,19 +17,40 @@ class AuthRepository {
   final ApiClient _api;
 
   bool _googleIniciado = false;
+  Future<void>? _googleInit;
 
-  Future<void> _initGoogle() async {
-    if (_googleIniciado) return;
-    await GoogleSignIn.instance.initialize(
-      serverClientId: AppConstants.googleServerClientId.isEmpty ? null : AppConstants.googleServerClientId,
-    );
-    _googleIniciado = true;
+  /// En web el "Web client ID" va como clientId (allí no existe serverClientId).
+  /// En Android/iOS va como serverClientId para que el ID token sea válido para la API.
+  Future<void> initGoogle() => _googleInit ??= _iniciarGoogle();
+
+  Future<void> _iniciarGoogle() async {
+    final id = AppConstants.googleServerClientId.isEmpty ? null : AppConstants.googleServerClientId;
+    try {
+      if (kIsWeb) {
+        await GoogleSignIn.instance.initialize(clientId: id);
+      } else {
+        await GoogleSignIn.instance.initialize(serverClientId: id);
+      }
+      _googleIniciado = true;
+    } catch (_) {
+      _googleInit = null; // se reintenta la próxima vez
+      rethrow;
+    }
   }
 
-  /// Login con Google en un clic: obtiene el ID token y lo cambia por el JWT de la API.
+  /// En web hay botón de Google solo si se compiló con el client ID.
+  static bool get googleWebDisponible => AppConstants.googleServerClientId.isNotEmpty;
+
+  /// Login con Google en un clic (Android/iOS): obtiene el ID token y lo cambia por el JWT de la API.
   Future<Session> loginGoogle() async {
-    await _initGoogle();
+    await initGoogle();
     final cuenta = await GoogleSignIn.instance.authenticate();
+    return loginGoogleCuenta(cuenta);
+  }
+
+  /// Cambia el ID token de una cuenta de Google por el JWT de la API.
+  /// En web la cuenta llega por GoogleSignIn.instance.authenticationEvents (botón de Google).
+  Future<Session> loginGoogleCuenta(GoogleSignInAccount cuenta) async {
     final idToken = cuenta.authentication.idToken;
     if (idToken == null) {
       throw ApiException(null, 'Google no devolvió el token. Revisa GOOGLE_SERVER_CLIENT_ID.');
