@@ -13,6 +13,7 @@ class PlanesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab-planes',
         onPressed: () => _editar(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('Nuevo plan'),
@@ -72,7 +73,7 @@ class PlanesScreen extends ConsumerWidget {
               TextField(controller: desc, decoration: const InputDecoration(labelText: 'Descripción')),
               const SizedBox(height: 12),
               DropdownButtonFormField<Frecuencia>(
-                value: frecuencia,
+                initialValue: frecuencia,
                 decoration: const InputDecoration(labelText: 'Frecuencia sugerida'),
                 items: Frecuencia.values.map((f) => DropdownMenuItem(value: f, child: Text(f.etiqueta))).toList(),
                 onChanged: (f) => setState(() => frecuencia = f!),

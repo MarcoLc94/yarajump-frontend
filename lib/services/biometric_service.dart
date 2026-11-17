@@ -33,7 +33,7 @@ class BiometricService {
     );
   }
 
-  Future<bool> autenticar({String motivo = 'Usa tu huella para entrar a Yara Jumping'}) async {
+  Future<bool> autenticar({String motivo = 'Usa tu huella para entrar a Yara Jump'}) async {
     try {
       return await _auth.authenticate(
         localizedReason: motivo,

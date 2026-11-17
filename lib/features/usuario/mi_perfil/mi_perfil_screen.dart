@@ -131,31 +131,37 @@ class _PerfilFormState extends ConsumerState<_PerfilForm> {
         TextField(
           controller: _telefono,
           keyboardType: TextInputType.phone,
-          decoration: const InputDecoration(labelText: 'Teléfono'),
+          decoration: const InputDecoration(labelText: 'Teléfono', prefixIcon: Icon(Icons.phone_outlined)),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _emergencia,
-          decoration: const InputDecoration(labelText: 'Contacto de emergencia (nombre y teléfono)'),
+          decoration: const InputDecoration(
+            labelText: 'Contacto de emergencia',
+            helperText: 'Nombre y teléfono',
+            prefixIcon: Icon(Icons.health_and_safety_outlined),
+          ),
         ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.cake),
-          title: const Text('Fecha de nacimiento'),
-          subtitle: Text(_nacimiento == null ? 'Agregar' : Fechas.formato(_nacimiento!)),
-          onTap: () async {
-            final d = await showDatePicker(
-              context: context,
-              initialDate: _nacimiento ?? DateTime(2000),
-              firstDate: DateTime(1930),
-              lastDate: DateTime.now(),
-            );
-            if (d != null) setState(() => _nacimiento = Fechas.soloFecha(d));
-          },
+        const SizedBox(height: 12),
+        Card(
+          margin: EdgeInsets.zero,
+          child: ListTile(
+            leading: const Icon(Icons.cake_outlined),
+            title: const Text('Fecha de nacimiento'),
+            subtitle: Text(_nacimiento == null ? 'Agregar' : Fechas.formato(_nacimiento!)),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _nacimiento ?? DateTime(2000),
+                firstDate: DateTime(1930),
+                lastDate: DateTime.now(),
+              );
+              if (d != null) setState(() => _nacimiento = Fechas.soloFecha(d));
+            },
+          ),
         ),
         const SizedBox(height: 24),
         FilledButton(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: _guardando ? null : _guardar,
           child: Text(_guardando ? 'Guardando…' : 'Guardar cambios'),
         ),

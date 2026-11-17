@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../core/constants/app_constants.dart';
 import '../data/repositories/perfil_repository.dart';
 
+enum MotivoWhatsapp { pago, activar }
+
 class WhatsappService {
   WhatsappService(this._perfil);
   final PerfilRepository _perfil;
@@ -18,10 +20,13 @@ class WhatsappService {
   }
 
   /// Abre WhatsApp con el chat de la admin y un mensaje ya escrito.
-  Future<bool> abrirChatAdmin({String? nombreCliente}) async {
+  Future<bool> abrirChatAdmin({String? nombreCliente, MotivoWhatsapp motivo = MotivoWhatsapp.pago}) async {
     final numero = await _numeroAdmin();
-    final texto = 'Hola Yara Jumping 👋, soy ${nombreCliente ?? 'cliente'}. '
-        'Quiero regularizar el pago de mi plan.';
+    final quien = (nombreCliente == null || nombreCliente.isEmpty) ? 'cliente' : nombreCliente;
+    final texto = switch (motivo) {
+      MotivoWhatsapp.pago => 'Hola Yara Jump 👋, soy $quien. Quiero regularizar el pago de mi plan.',
+      MotivoWhatsapp.activar => 'Hola Yara Jump 👋, soy $quien. Ya me registré en la app y quiero activar mi plan.',
+    };
     final uri = Uri.parse('https://wa.me/$numero?text=${Uri.encodeComponent(texto)}');
     return launchUrl(uri, mode: LaunchMode.externalApplication);
   }

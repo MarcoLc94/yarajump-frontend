@@ -1,7 +1,7 @@
 class AppConstants {
   AppConstants._();
 
-  static const nombreNegocio = 'Yara Jumping';
+  static const nombreNegocio = 'Yara Jump';
 
   /// URL de la API en Go. Se pasa con --dart-define-from-file=env/dev.json
   /// - Emulador Android → http://10.0.2.2:8080 (es el localhost de tu PC)
@@ -10,9 +10,6 @@ class AppConstants {
 
   /// "Web client ID" de Google Cloud. Es necesario para que Google Sign-In devuelva un ID token.
   static const googleServerClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
-
-  /// Muestra "Entrar con correo (pruebas)" en el login. Requiere DEV_AUTH=true en el backend.
-  static const devAuth = bool.fromEnvironment('DEV_AUTH');
 
   /// Valor de respaldo si la API no devuelve el número (GET /config).
   static const whatsappAdminDefault = '52XXXXXXXXXX';

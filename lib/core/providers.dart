@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/models/cliente.dart';
+import '../data/models/horario.dart';
+import '../data/models/medicion.dart';
 import '../data/models/plan.dart';
 import '../data/repositories/admin_repository.dart';
 import '../data/repositories/auth_repository.dart';
@@ -32,7 +34,10 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   }
 
   Future<void> loginGoogle() async => state = AsyncData(await _repo.loginGoogle());
-  Future<void> loginDev(String email) async => state = AsyncData(await _repo.loginDev(email));
+  Future<void> login(String email, String password) async => state = AsyncData(await _repo.login(email, password));
+
+  Future<void> registrar({required String nombre, required String email, required String password}) async =>
+      state = AsyncData(await _repo.registrar(nombre: nombre, email: email, password: password));
 
   Future<void> refrescar() async {
     final s = await _repo.me();
@@ -63,6 +68,16 @@ final planesProvider = FutureProvider<List<Plan>>((ref) => ref.watch(adminReposi
 
 final clientesProvider = FutureProvider<List<Cliente>>((ref) => ref.watch(adminRepositoryProvider).clientes());
 
+final horariosProvider = FutureProvider<List<Horario>>((ref) => ref.watch(adminRepositoryProvider).horarios());
+
+/// Progreso de un cliente (vista de admin).
+final progresoClienteProvider = FutureProvider.family<List<Medicion>, int>(
+  (ref, clienteId) => ref.watch(adminRepositoryProvider).progreso(clienteId),
+);
+
+/// Mi progreso (rol usuario).
+final miProgresoProvider = FutureProvider<List<Medicion>>((ref) => ref.watch(perfilRepositoryProvider).miProgreso());
+
 final recordatoriosProvider =
     FutureProvider<List<Cliente>>((ref) => ref.watch(adminRepositoryProvider).recordatorios());
 
@@ -74,4 +89,5 @@ void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(clientesProvider);
   ref.invalidate(recordatoriosProvider);
   ref.invalidate(planesProvider);
+  ref.invalidate(horariosProvider);
 }

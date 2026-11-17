@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../data/models/cliente.dart';
 import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/estado_chip.dart';
+import '../../shared/widgets/ui.dart';
 import 'cliente_form_screen.dart';
 import 'registrar_pago_sheet.dart';
 
@@ -14,74 +16,190 @@ class ClientesListScreen extends ConsumerStatefulWidget {
   ConsumerState<ClientesListScreen> createState() => _ClientesListScreenState();
 }
 
+enum _Filtro { todos, sinPlan, activos, porVencer, expirados }
+
 class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
-  String _filtro = '';
+  String _busqueda = '';
+  _Filtro _filtro = _Filtro.todos;
 
   Future<void> _abrirForm([Cliente? c]) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClienteFormScreen(cliente: c)));
     refrescarAdmin(ref);
   }
 
+  static bool _pasa(Cliente c, _Filtro f) => switch (f) {
+        _Filtro.todos => true,
+        _Filtro.sinPlan => c.estado == EstadoPlan.sinPlan,
+        _Filtro.activos => c.estado == EstadoPlan.activo,
+        _Filtro.porVencer => c.estado == EstadoPlan.porVencer || c.estado == EstadoPlan.ultimoDia,
+        _Filtro.expirados => c.estado == EstadoPlan.expirado,
+      };
+
   @override
   Widget build(BuildContext context) {
     final clientes = ref.watch(clientesProvider);
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab-clientes',
         onPressed: _abrirForm,
-        icon: const Icon(Icons.person_add),
-        label: const Text('Nuevo cliente'),
+        icon: const Icon(Icons.person_add_alt_1),
+        label: const Text('Nuevo'),
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar cliente'),
-              onChanged: (v) => setState(() => _filtro = v.toLowerCase()),
-            ),
-          ),
-          Expanded(
-            child: AsyncBody(
-              value: clientes,
-              onRetry: () => ref.invalidate(clientesProvider),
-              data: (lista) {
-                final filtrados = lista
-                    .where((c) => c.nombre.toLowerCase().contains(_filtro) || c.email.contains(_filtro))
-                    .toList();
-                return RefreshIndicator(
-                  onRefresh: () => ref.refresh(clientesProvider.future),
-                  child: filtrados.isEmpty
-                      ? ListView(children: const [SizedBox(height: 120), Center(child: Text('Sin clientes'))])
-                      : ListView.builder(
-                          padding: const EdgeInsets.only(bottom: 96),
-                          itemCount: filtrados.length,
-                          itemBuilder: (_, i) {
-                            final c = filtrados[i];
-                            return Card(
-                              child: ListTile(
-                                leading: CircleAvatar(
-                                  backgroundImage: c.fotoUrl != null ? NetworkImage(c.fotoUrl!) : null,
-                                  child: c.fotoUrl == null ? Text(c.nombre.isEmpty ? '?' : c.nombre[0]) : null,
-                                ),
-                                title: Text(c.nombre),
-                                subtitle: Text('${c.planNombre ?? 'Sin plan'} · ${c.frecuencia.etiqueta}'
-                                    '${c.vinculado ? '' : '\nAún no entra a la app'}'),
-                                isThreeLine: !c.vinculado,
-                                trailing: EstadoChip(c.estado),
-                                onTap: () => _abrirForm(c),
-                                onLongPress: () async {
-                                  await mostrarRegistrarPago(context, c);
-                                  refrescarAdmin(ref);
-                                },
+      body: AsyncBody(
+        value: clientes,
+        onRetry: () => ref.invalidate(clientesProvider),
+        data: (lista) {
+          final q = _busqueda.toLowerCase();
+          final filtrados = lista
+              .where((c) => _pasa(c, _filtro) && (c.nombre.toLowerCase().contains(q) || c.email.contains(q)))
+              .toList();
+          int contar(_Filtro f) => lista.where((c) => _pasa(c, f)).length;
+
+          final sinPlan = contar(_Filtro.sinPlan);
+
+          return RefreshIndicator(
+            onRefresh: () => ref.refresh(clientesProvider.future),
+            child: CustomScrollView(slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: TextField(
+                    decoration: const InputDecoration(prefixIcon: Icon(Icons.search), hintText: 'Buscar por nombre o correo'),
+                    onChanged: (v) => setState(() => _busqueda = v),
+                  ),
+                ),
+              ),
+              if (sinPlan > 0 && _filtro != _Filtro.sinPlan)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: Material(
+                      color: AppColors.primario.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppTheme.radio),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radio),
+                        onTap: () => setState(() => _filtro = _Filtro.sinPlan),
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(children: [
+                            const Icon(Icons.how_to_reg, color: AppColors.primario),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '$sinPlan cliente${sinPlan == 1 ? '' : 's'} esperando que actives su plan',
+                                style: const TextStyle(color: AppColors.primario, fontWeight: FontWeight.w600),
                               ),
-                            );
-                          },
+                            ),
+                            const Icon(Icons.chevron_right, color: AppColors.primario),
+                          ]),
                         ),
-                );
-              },
+                      ),
+                    ),
+                  ),
+                ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    children: [
+                      for (final (f, etiqueta) in [
+                        (_Filtro.todos, 'Todos'),
+                        (_Filtro.sinPlan, 'Sin plan'),
+                        (_Filtro.activos, 'Activos'),
+                        (_Filtro.porVencer, 'Por vencer'),
+                        (_Filtro.expirados, 'Expirados'),
+                      ])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text('$etiqueta (${contar(f)})'),
+                            selected: _filtro == f,
+                            onSelected: (_) => setState(() => _filtro = f),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              if (filtrados.isEmpty)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyState(icono: Icons.people_outline, titulo: 'Sin clientes', mensaje: 'Nada por aquí con ese filtro.'),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.only(top: 4, bottom: 100),
+                  sliver: SliverList.builder(
+                    itemCount: filtrados.length,
+                    itemBuilder: (_, i) => _ClienteCard(
+                      cliente: filtrados[i],
+                      onTap: () => _abrirForm(filtrados[i]),
+                      onLongPress: filtrados[i].planId == null
+                          ? null
+                          : () async {
+                              await mostrarRegistrarPago(context, filtrados[i]);
+                              refrescarAdmin(ref);
+                            },
+                    ),
+                  ),
+                ),
+            ]),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _ClienteCard extends StatelessWidget {
+  const _ClienteCard({required this.cliente, required this.onTap, this.onLongPress});
+  final Cliente cliente;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final c = cliente;
+    final detalle = c.planId == null
+        ? (c.vinculado ? 'Registrado · sin plan' : 'Sin plan · aún no entra a la app')
+        : '${c.planNombre} · ${c.frecuencia.etiqueta}';
+    final horarios = c.horarios.map((h) => h.horaInicio).join(' · ');
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(children: [
+            Avatar(fotoUrl: c.fotoUrl, iniciales: c.iniciales),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(c.nombre, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Text(detalle, style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
+                if (horarios.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Row(children: [
+                      const Icon(Icons.schedule, size: 14, color: AppColors.textoSuave),
+                      const SizedBox(width: 4),
+                      Flexible(
+                        child: Text(horarios,
+                            overflow: TextOverflow.ellipsis,
+                            style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
+                      ),
+                    ]),
+                  ),
+              ]),
             ),
-          ),
-        ],
+            EstadoChip(c.estado),
+          ]),
+        ),
       ),
     );
   }

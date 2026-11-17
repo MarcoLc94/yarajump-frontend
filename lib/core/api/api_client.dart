@@ -13,7 +13,7 @@ class ApiException implements Exception {
   String toString() => message;
 }
 
-/// Cliente HTTP de la API de Yara Jumping. Guarda el JWT en el almacenamiento seguro.
+/// Cliente HTTP de la API de Yara Jump. Guarda el JWT en el almacenamiento seguro.
 class ApiClient {
   ApiClient({required this.baseUrl, FlutterSecureStorage? storage})
       : _storage = storage ?? const FlutterSecureStorage();

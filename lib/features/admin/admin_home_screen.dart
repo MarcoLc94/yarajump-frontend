@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/app_constants.dart';
 import '../../core/providers.dart';
+import '../shared/widgets/ui.dart';
 import 'clientes/clientes_list_screen.dart';
+import 'horarios/horarios_screen.dart';
 import 'planes/planes_screen.dart';
 import 'recordatorios/recordatorios_screen.dart';
 
@@ -14,25 +17,43 @@ class AdminHomeScreen extends ConsumerStatefulWidget {
 
 class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
   int _tab = 0;
-  static const _titulos = ['Clientes', 'Planes', 'Recordatorios'];
+  static const _titulos = ['Clientes', 'Horarios', 'Planes', 'Vencimientos'];
 
   @override
   Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titulos[_tab]),
-        actions: [
-          IconButton(
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(sessionProvider.notifier).logout(),
+      body: Column(children: [
+        GradientHeader(
+          padding: const EdgeInsets.fromLTRB(20, 8, 8, 20),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+              child: const AppLogo(size: 40),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(AppConstants.nombreNegocio, style: t.bodySmall?.copyWith(color: Colors.white70)),
+                Text(_titulos[_tab], style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+              ]),
+            ),
+            IconButton(
+              tooltip: 'Cerrar sesión',
+              color: Colors.white,
+              icon: const Icon(Icons.logout),
+              onPressed: () => ref.read(sessionProvider.notifier).logout(),
+            ),
+          ]),
+        ),
+        Expanded(
+          child: IndexedStack(
+            index: _tab,
+            children: const [ClientesListScreen(), HorariosScreen(), PlanesScreen(), RecordatoriosScreen()],
           ),
-        ],
-      ),
-      body: IndexedStack(
-        index: _tab,
-        children: const [ClientesListScreen(), PlanesScreen(), RecordatoriosScreen()],
-      ),
+        ),
+      ]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) {
@@ -40,9 +61,12 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
           refrescarAdmin(ref); // datos frescos al cambiar de pestaña
         },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.people), label: 'Clientes'),
-          NavigationDestination(icon: Icon(Icons.card_membership), label: 'Planes'),
-          NavigationDestination(icon: Icon(Icons.notifications_active), label: 'Recordatorios'),
+          NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Clientes'),
+          NavigationDestination(icon: Icon(Icons.schedule_outlined), selectedIcon: Icon(Icons.schedule), label: 'Horarios'),
+          NavigationDestination(
+              icon: Icon(Icons.card_membership_outlined), selectedIcon: Icon(Icons.card_membership), label: 'Planes'),
+          NavigationDestination(
+              icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Avisos'),
         ],
       ),
     );

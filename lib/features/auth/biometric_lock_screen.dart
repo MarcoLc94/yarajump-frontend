@@ -49,7 +49,7 @@ class _BiometricLockScreenState extends ConsumerState<BiometricLockScreen> {
                 const SizedBox(height: 24),
                 TextButton(
                   onPressed: () => ref.read(sessionProvider.notifier).logout(),
-                  child: const Text('Entrar con Google de nuevo'),
+                  child: const Text('Iniciar sesión de nuevo'),
                 ),
               ],
             ],

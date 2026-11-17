@@ -30,10 +30,10 @@ class NoRegistradoScreen extends ConsumerWidget {
             Text('Tu cuenta aún no está registrada',
                 textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
-            Text('Pide a Yara Jumping que te registre con el correo:\n${user?.email ?? ''}',
+            Text('Pide a Yara Jump que active tu cuenta con el correo:\n${user?.email ?? ''}',
                 textAlign: TextAlign.center),
             const SizedBox(height: 32),
-            WhatsappButton(nombreCliente: user?.nombre, texto: 'Solicitar registro por WhatsApp'),
+            WhatsappButton(nombreCliente: user?.nombre, texto: 'Solicitar activación por WhatsApp', motivo: MotivoWhatsapp.activar),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               icon: const Icon(Icons.refresh),

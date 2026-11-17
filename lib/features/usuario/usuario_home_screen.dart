@@ -5,6 +5,7 @@ import '../../core/providers.dart';
 import '../../services/notification_service.dart';
 import 'mi_perfil/mi_perfil_screen.dart';
 import 'mi_plan/mi_plan_screen.dart';
+import 'mi_progreso/mi_progreso_screen.dart';
 
 class UsuarioHomeScreen extends ConsumerStatefulWidget {
   const UsuarioHomeScreen({super.key});
@@ -26,13 +27,21 @@ class _UsuarioHomeScreenState extends ConsumerState<UsuarioHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _tab, children: const [MiPlanScreen(), MiPerfilScreen()]),
+      body: IndexedStack(index: _tab, children: const [MiPlanScreen(), MiProgresoScreen(), MiPerfilScreen()]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
+        onDestinationSelected: (i) {
+          setState(() => _tab = i);
+          // Datos frescos al cambiar de pestaña (la admin pudo activar el plan o registrar medidas)
+          ref.invalidate(miClienteProvider);
+          ref.invalidate(miProgresoProvider);
+        },
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.card_membership), label: 'Mi plan'),
-          NavigationDestination(icon: Icon(Icons.person), label: 'Mi perfil'),
+          NavigationDestination(
+              icon: Icon(Icons.card_membership_outlined), selectedIcon: Icon(Icons.card_membership), label: 'Mi plan'),
+          NavigationDestination(
+              icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Progreso'),
+          NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Perfil'),
         ],
       ),
     );

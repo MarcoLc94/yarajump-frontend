@@ -38,10 +38,21 @@ class AuthRepository {
     return me();
   }
 
-  /// Solo pruebas (backend con DEV_AUTH=true): entra con el correo, sin Google.
-  Future<Session> loginDev(String email) async {
-    final r = await _api.post('/auth/dev', {'email': email}) as Map<String, dynamic>;
-    await _api.saveToken(r['token'] as String);
+  /// Entra con correo y contraseña.
+  Future<Session> login(String email, String password) async {
+    final r = await _api.post('/auth/login', {'email': email.trim().toLowerCase(), 'password': password});
+    await _api.saveToken((r as Map<String, dynamic>)['token'] as String);
+    return me();
+  }
+
+  /// Crea una cuenta nueva (rol usuario, sin plan) y entra.
+  Future<Session> registrar({required String nombre, required String email, required String password}) async {
+    final r = await _api.post('/auth/register', {
+      'nombre': nombre.trim(),
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    });
+    await _api.saveToken((r as Map<String, dynamic>)['token'] as String);
     return me();
   }
 

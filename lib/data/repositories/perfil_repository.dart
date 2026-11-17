@@ -3,6 +3,7 @@ import 'dart:io';
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
 import '../models/cliente.dart';
+import '../models/medicion.dart';
 
 /// Endpoints /me/* que usa el rol USUARIO.
 class PerfilRepository {
@@ -34,6 +35,14 @@ class PerfilRepository {
     final r = await _api.upload('/me/foto', 'foto', archivo) as Map<String, dynamic>;
     return r['fotoUrl'] as String;
   }
+
+  Future<List<Medicion>> miProgreso() async => ((await _api.get('/me/progreso')) as List)
+      .map((e) => Medicion.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  Future<void> registrarMedicion(Medicion m) => _api.post('/me/progreso', m.toJson());
+
+  Future<void> eliminarMedicion(int id) => _api.delete('/me/progreso/$id');
 
   Future<void> registrarTokenPush(String? token) => _api.put('/me/fcm-token', {'token': token});
 

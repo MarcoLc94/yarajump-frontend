@@ -1,6 +1,8 @@
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
 import '../models/cliente.dart';
+import '../models/horario.dart';
+import '../models/medicion.dart';
 import '../models/plan.dart';
 
 /// Endpoints /admin/* (solo rol administrador).
@@ -24,10 +26,11 @@ class AdminRepository {
           .map((e) => Cliente.fromJson(e as Map<String, dynamic>))
           .toList();
 
-  Future<Cliente> guardarCliente(Cliente c) async {
+  Future<Cliente> guardarCliente(Cliente c, {List<int>? horarioIds}) async {
+    final body = c.toInputJson(horarioIds: horarioIds);
     final r = c.id == null
-        ? await _api.post('/admin/clientes', c.toInputJson())
-        : await _api.put('/admin/clientes/${c.id}', c.toInputJson());
+        ? await _api.post('/admin/clientes', body)
+        : await _api.put('/admin/clientes/${c.id}', body);
     return Cliente.fromJson(r as Map<String, dynamic>);
   }
 
@@ -45,6 +48,27 @@ class AdminRepository {
     }) as Map<String, dynamic>;
     return Cliente.fromJson(r['cliente'] as Map<String, dynamic>);
   }
+
+  // ---------- Horarios ----------
+  Future<List<Horario>> horarios() async => ((await _api.get('/admin/horarios')) as List)
+      .map((e) => Horario.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  Future<void> guardarHorario(Horario h) =>
+      h.id == null ? _api.post('/admin/horarios', h.toJson()) : _api.put('/admin/horarios/${h.id}', h.toJson());
+
+  Future<void> eliminarHorario(int id) => _api.delete('/admin/horarios/$id');
+
+  // ---------- Progreso ----------
+  Future<List<Medicion>> progreso(int clienteId) async =>
+      ((await _api.get('/admin/clientes/$clienteId/progreso')) as List)
+          .map((e) => Medicion.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  Future<void> registrarMedicion(int clienteId, Medicion m) =>
+      _api.post('/admin/clientes/$clienteId/progreso', m.toJson());
+
+  Future<void> eliminarMedicion(int id) => _api.delete('/admin/progreso/$id');
 
   // ---------- Recordatorios ----------
   Future<List<Cliente>> recordatorios() async => ((await _api.get('/admin/recordatorios')) as List)

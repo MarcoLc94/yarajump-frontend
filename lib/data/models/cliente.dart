@@ -1,5 +1,6 @@
 import '../../core/utils/fechas.dart';
 import 'frecuencia.dart';
+import 'horario.dart';
 
 /// Estado calculado por la API con la fecha de hoy (zona horaria del negocio).
 enum EstadoPlan { sinPlan, activo, porVencer, ultimoDia, expirado }
@@ -44,6 +45,7 @@ class Cliente {
     this.fechaFin,
     this.activo = true,
     this.vinculado = false,
+    this.horarios = const [],
     this.diasRestantes,
     this.estado = EstadoPlan.sinPlan,
   });
@@ -64,7 +66,8 @@ class Cliente {
   final DateTime? fechaInicio;
   final DateTime? fechaFin; // último día cubierto
   final bool activo;
-  final bool vinculado; // ya entró a la app con su cuenta de Google
+  final bool vinculado; // ya tiene cuenta en la app
+  final List<Horario> horarios;
 
   final int? diasRestantes;
   final EstadoPlan estado;
@@ -86,12 +89,15 @@ class Cliente {
         fechaFin: Fechas.parse(j['fechaFin']),
         activo: j['activo'] as bool? ?? true,
         vinculado: j['vinculado'] as bool? ?? false,
+        horarios: ((j['horarios'] as List?) ?? [])
+            .map((e) => Horario.fromJson(e as Map<String, dynamic>))
+            .toList(),
         diasRestantes: j['diasRestantes'] as int?,
         estado: EstadoPlanX.fromApi(j['estado'] as String?),
       );
 
   /// Cuerpo para POST/PUT /admin/clientes (fechaFin la calcula el servidor).
-  Map<String, dynamic> toInputJson() => {
+  Map<String, dynamic> toInputJson({List<int>? horarioIds}) => {
         'nombre': nombre,
         'email': email.trim().toLowerCase(),
         'telefono': telefono,
@@ -100,7 +106,14 @@ class Cliente {
         'diasPersonalizados': frecuencia == Frecuencia.libre ? diasPersonalizados : null,
         'fechaInicio': fechaInicio == null ? null : Fechas.api(fechaInicio!),
         'activo': activo,
+        if (horarioIds != null) 'horarioIds': horarioIds,
       };
+
+  String get iniciales {
+    final partes = nombre.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (partes.isEmpty) return '?';
+    return (partes.first[0] + (partes.length > 1 ? partes[1][0] : '')).toUpperCase();
+  }
 }
 
 class Pago {
