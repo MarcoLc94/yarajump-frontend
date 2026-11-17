@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../data/models/cliente.dart';
+import '../data/models/comunicado.dart';
+import '../data/models/cuenta_pago.dart';
 import '../data/models/horario.dart';
 import '../data/models/medicion.dart';
 import '../data/models/plan.dart';
@@ -84,6 +86,20 @@ final miProgresoProvider = FutureProvider<List<Medicion>>((ref) => ref.watch(per
 final recordatoriosProvider =
     FutureProvider<List<Cliente>>((ref) => ref.watch(adminRepositoryProvider).recordatorios());
 
+final cuentasPagoProvider =
+    FutureProvider<List<CuentaPago>>((ref) => ref.watch(adminRepositoryProvider).cuentasPago());
+
+final comunicadosProvider =
+    FutureProvider<List<Comunicado>>((ref) => ref.watch(adminRepositoryProvider).comunicados());
+
+/// Datos para pagar (rol usuario).
+final misCuentasPagoProvider =
+    FutureProvider<List<CuentaPago>>((ref) => ref.watch(perfilRepositoryProvider).misCuentasPago());
+
+/// Avisos de Yara para mí (rol usuario).
+final misComunicadosProvider =
+    FutureProvider<List<Comunicado>>((ref) => ref.watch(perfilRepositoryProvider).misComunicados());
+
 /// Mi plan (rol usuario).
 final miClienteProvider = FutureProvider<Cliente?>((ref) => ref.watch(perfilRepositoryProvider).miCliente());
 
@@ -93,4 +109,6 @@ void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(recordatoriosProvider);
   ref.invalidate(planesProvider);
   ref.invalidate(horariosProvider);
+  ref.invalidate(cuentasPagoProvider);
+  ref.invalidate(comunicadosProvider);
 }

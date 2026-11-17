@@ -1,6 +1,8 @@
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
 import '../models/cliente.dart';
+import '../models/comunicado.dart';
+import '../models/cuenta_pago.dart';
 import '../models/medicion.dart';
 
 /// Endpoints /me/* que usa el rol USUARIO.
@@ -43,6 +45,16 @@ class PerfilRepository {
   Future<void> eliminarMedicion(int id) => _api.delete('/me/progreso/$id');
 
   Future<void> registrarTokenPush(String? token) => _api.put('/me/fcm-token', {'token': token});
+
+  /// Tarjetas/CLABE activas donde se puede pagar.
+  Future<List<CuentaPago>> misCuentasPago() async => ((await _api.get('/me/cuentas-pago')) as List)
+      .map((e) => CuentaPago.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  /// Avisos de Yara de los últimos 60 días que me tocan (por turno/horario o para todos).
+  Future<List<Comunicado>> misComunicados() async => ((await _api.get('/me/comunicados')) as List)
+      .map((e) => Comunicado.fromJson(e as Map<String, dynamic>))
+      .toList();
 
   Future<Map<String, dynamic>> config() async => await _api.get('/config') as Map<String, dynamic>;
 }

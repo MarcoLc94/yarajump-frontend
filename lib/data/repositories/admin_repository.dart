@@ -1,6 +1,8 @@
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
 import '../models/cliente.dart';
+import '../models/comunicado.dart';
+import '../models/cuenta_pago.dart';
 import '../models/horario.dart';
 import '../models/medicion.dart';
 import '../models/plan.dart';
@@ -69,6 +71,53 @@ class AdminRepository {
       _api.post('/admin/clientes/$clienteId/progreso', m.toJson());
 
   Future<void> eliminarMedicion(int id) => _api.delete('/admin/progreso/$id');
+
+  // ---------- Datos de pago ----------
+  Future<List<CuentaPago>> cuentasPago() async => ((await _api.get('/admin/cuentas-pago')) as List)
+      .map((e) => CuentaPago.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  Future<void> guardarCuentaPago(CuentaPago c) => c.id == null
+      ? _api.post('/admin/cuentas-pago', c.toJson())
+      : _api.put('/admin/cuentas-pago/${c.id}', c.toJson());
+
+  Future<void> eliminarCuentaPago(int id) => _api.delete('/admin/cuentas-pago/$id');
+
+  // ---------- Avisos (comunicados) ----------
+  Future<List<Comunicado>> comunicados() async => ((await _api.get('/admin/comunicados')) as List)
+      .map((e) => Comunicado.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  static Map<String, String> _audiencia(Audiencia a, Turno? turno, int? horarioId) => {
+        'audiencia': a.name,
+        if (a == Audiencia.turno && turno != null) 'turno': turno.name,
+        if (a == Audiencia.horario && horarioId != null) 'horarioId': '$horarioId',
+      };
+
+  /// Cuántos clientes verían un aviso con esa audiencia.
+  Future<int> alcance(Audiencia a, {Turno? turno, int? horarioId}) async {
+    final r = await _api.get('/admin/comunicados/alcance', query: _audiencia(a, turno, horarioId));
+    return (r as Map<String, dynamic>)['clientes'] as int;
+  }
+
+  Future<Comunicado> crearComunicado({
+    required String titulo,
+    required String cuerpo,
+    required Audiencia audiencia,
+    Turno? turno,
+    int? horarioId,
+  }) async {
+    final r = await _api.post('/admin/comunicados', {
+      'titulo': titulo,
+      'cuerpo': cuerpo,
+      'audiencia': audiencia.name,
+      if (audiencia == Audiencia.turno) 'turno': turno?.name,
+      if (audiencia == Audiencia.horario) 'horarioId': horarioId,
+    });
+    return Comunicado.fromJson(r as Map<String, dynamic>);
+  }
+
+  Future<void> eliminarComunicado(int id) => _api.delete('/admin/comunicados/$id');
 
   // ---------- Recordatorios ----------
   Future<List<Cliente>> recordatorios() async => ((await _api.get('/admin/recordatorios')) as List)

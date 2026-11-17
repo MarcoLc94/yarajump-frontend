@@ -7,7 +7,8 @@ import '../shared/widgets/ui.dart';
 import 'clientes/clientes_list_screen.dart';
 import 'horarios/horarios_screen.dart';
 import 'planes/planes_screen.dart';
-import 'recordatorios/recordatorios_screen.dart';
+import 'avisos/avisos_screen.dart';
+import 'pagos/cuentas_pago_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
   const AdminHomeScreen({super.key});
@@ -17,7 +18,7 @@ class AdminHomeScreen extends ConsumerStatefulWidget {
 
 class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
   int _tab = 0;
-  static const _titulos = ['Clientes', 'Horarios', 'Planes', 'Vencimientos'];
+  static const _titulos = ['Clientes', 'Horarios', 'Planes', 'Avisos'];
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +41,12 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
               ]),
             ),
             IconButton(
+              tooltip: 'Datos de pago',
+              color: Colors.white,
+              icon: const Icon(Icons.credit_card),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CuentasPagoScreen())),
+            ),
+            IconButton(
               tooltip: 'Cerrar sesión',
               color: Colors.white,
               icon: const Icon(Icons.logout),
@@ -50,7 +57,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         Expanded(
           child: IndexedStack(
             index: _tab,
-            children: const [ClientesListScreen(), HorariosScreen(), PlanesScreen(), RecordatoriosScreen()],
+            children: const [ClientesListScreen(), HorariosScreen(), PlanesScreen(), AvisosScreen()],
           ),
         ),
       ]),

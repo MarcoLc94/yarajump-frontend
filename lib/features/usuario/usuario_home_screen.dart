@@ -34,6 +34,8 @@ class _UsuarioHomeScreenState extends ConsumerState<UsuarioHomeScreen> {
           setState(() => _tab = i);
           // Datos frescos al cambiar de pestaña (la admin pudo activar el plan o registrar medidas)
           ref.invalidate(miClienteProvider);
+          ref.invalidate(misComunicadosProvider);
+          ref.invalidate(misCuentasPagoProvider);
           ref.invalidate(miProgresoProvider);
         },
         destinations: const [

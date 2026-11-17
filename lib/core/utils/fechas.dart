@@ -39,4 +39,13 @@ class Fechas {
 
   static String formato(DateTime d) => DateFormat("d 'de' MMMM yyyy", 'es_MX').format(d);
   static String corta(DateTime d) => DateFormat('dd/MM/yyyy', 'es_MX').format(d);
+
+  /// "Hoy", "Ayer", "Hace 3 días" o la fecha corta (para avisos).
+  static String relativa(DateTime d) {
+    final dias = hoy().difference(soloFecha(d)).inDays;
+    if (dias <= 0) return 'Hoy';
+    if (dias == 1) return 'Ayer';
+    if (dias < 7) return 'Hace $dias días';
+    return DateFormat("d 'de' MMM", 'es_MX').format(d);
+  }
 }

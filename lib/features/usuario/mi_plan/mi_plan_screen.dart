@@ -5,7 +5,10 @@ import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../data/models/cliente.dart';
+import '../../../data/models/comunicado.dart';
 import '../../shared/widgets/async_body.dart';
+import '../../shared/widgets/compartir_comprobante.dart';
+import '../../shared/widgets/cuenta_pago_visual.dart';
 import '../../shared/widgets/estado_chip.dart';
 import '../../shared/widgets/horario_tile.dart';
 import '../../shared/widgets/ui.dart';
@@ -22,15 +25,26 @@ class MiPlanScreen extends ConsumerWidget {
         value: ref.watch(miClienteProvider),
         onRetry: () => ref.invalidate(miClienteProvider),
         data: (c) => RefreshIndicator(
-          onRefresh: () => ref.refresh(miClienteProvider.future),
+          onRefresh: () {
+            ref.invalidate(misComunicadosProvider);
+            ref.invalidate(misCuentasPagoProvider);
+            return ref.refresh(miClienteProvider.future);
+          },
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
               _Saludo(nombre: c?.nombre ?? nombre, fotoUrl: c?.fotoUrl, iniciales: c?.iniciales ?? '?'),
+              const _AvisosYara(),
               if (c == null || c.estado == EstadoPlan.sinPlan)
                 _SinPlan(nombre: c?.nombre ?? nombre)
               else
                 _DetallePlan(cliente: c),
+              if (c != null)
+                _DatosDePago(
+                  nombreCliente: c.nombre,
+                  // Sin plan ya tiene su botón "Activar mi plan por WhatsApp"
+                  conWhatsapp: c.estado != EstadoPlan.sinPlan,
+                ),
               if (c != null) _MisHorarios(cliente: c),
               const SizedBox(height: 24),
             ],
@@ -143,15 +157,12 @@ class _DetallePlan extends StatelessWidget {
             icono: Icons.alarm,
             texto: 'Hoy es tu último día. Realiza tu pago para continuar mañana.',
           ),
-        if (expirado) ...[
+        if (expirado)
           const _Aviso(
             color: AppColors.expirado,
             icono: Icons.error_outline,
-            texto: 'Tu plan expiró. Regulariza tu pago comunicándote con Yara Jump.',
+            texto: 'Tu plan expiró. Regulariza tu pago con los datos de abajo o escríbele a Yara Jump.',
           ),
-          const SizedBox(height: 12),
-          WhatsappButton(nombreCliente: cliente.nombre, texto: 'Regularizar pago por WhatsApp'),
-        ],
       ]),
     );
   }
@@ -273,5 +284,99 @@ class _SinPlan extends StatelessWidget {
         ]),
       ),
     );
+  }
+}
+
+/// Avisos que Yara mandó a todos, al turno o al horario del cliente.
+class _AvisosYara extends ConsumerWidget {
+  const _AvisosYara();
+  static const _visibles = 3;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final avisos = ref.watch(misComunicadosProvider).value ?? const <Comunicado>[];
+    if (avisos.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SectionTitle(
+        'Avisos de Yara',
+        trailing: avisos.length > _visibles
+            ? TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => Scaffold(
+                    appBar: AppBar(title: const Text('Avisos de Yara')),
+                    body: ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [for (final a in avisos) ComunicadoCard(aviso: a)],
+                    ),
+                  ),
+                )),
+                child: Text('Ver todos (${avisos.length})'),
+              )
+            : null,
+      ),
+      for (final a in avisos.take(_visibles)) ComunicadoCard(aviso: a),
+    ]);
+  }
+}
+
+class ComunicadoCard extends StatelessWidget {
+  const ComunicadoCard({super.key, required this.aviso});
+  final Comunicado aviso;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primario.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.campaign_outlined, color: AppColors.primario),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Expanded(child: Text(aviso.titulo, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w800))),
+                Text(Fechas.relativa(aviso.fecha), style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
+              ]),
+              const SizedBox(height: 4),
+              Text(aviso.cuerpo, style: t.bodyMedium),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Dónde pagar (tarjeta/CLABE dibujadas), pagar por WhatsApp y compartir comprobante.
+class _DatosDePago extends ConsumerWidget {
+  const _DatosDePago({required this.nombreCliente, required this.conWhatsapp});
+  final String nombreCliente;
+  final bool conWhatsapp;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cuentas = ref.watch(misCuentasPagoProvider).value ?? const [];
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SectionTitle(cuentas.isEmpty ? 'Pagos' : 'Datos para pagar'),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (final c in cuentas) ...[CuentaPagoVisual(cuenta: c), const SizedBox(height: 8)],
+          if (conWhatsapp) ...[
+            WhatsappButton(nombreCliente: nombreCliente, texto: 'Pagar por WhatsApp'),
+            const SizedBox(height: 10),
+          ],
+          CompartirComprobanteButton(nombreCliente: nombreCliente),
+        ]),
+      ),
+    ]);
   }
 }
