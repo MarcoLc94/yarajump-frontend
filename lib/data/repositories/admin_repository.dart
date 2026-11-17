@@ -1,11 +1,13 @@
 import '../../core/api/api_client.dart';
 import '../../core/utils/fechas.dart';
+import '../../core/utils/periodo.dart';
 import '../models/cliente.dart';
 import '../models/comunicado.dart';
 import '../models/cuenta_pago.dart';
 import '../models/horario.dart';
 import '../models/medicion.dart';
 import '../models/plan.dart';
+import '../models/reporte_pagos.dart';
 import '../models/solicitud.dart';
 
 /// Endpoints /admin/* (solo rol administrador).
@@ -54,6 +56,18 @@ class AdminRepository {
       if (fechaPago != null) 'fechaPago': Fechas.api(fechaPago),
     }) as Map<String, dynamic>;
     return Cliente.fromJson(r['cliente'] as Map<String, dynamic>);
+  }
+
+  /// Todos los pagos recibidos en el periodo, con total y comparativo.
+  Future<ReportePagos> reportePagos(Periodo p) async {
+    final r = p.rango!, c = p.comparativo!;
+    final j = await _api.get('/admin/pagos', query: {
+      'desde': Fechas.api(r.desde),
+      'hasta': Fechas.api(r.hasta),
+      'compDesde': Fechas.api(c.desde),
+      'compHasta': Fechas.api(c.hasta),
+    });
+    return ReportePagos.fromJson(j as Map<String, dynamic>);
   }
 
   // ---------- Horarios ----------

@@ -8,6 +8,7 @@ import 'clientes/clientes_list_screen.dart';
 import 'horarios/horarios_screen.dart';
 import 'planes/planes_screen.dart';
 import 'avisos/avisos_screen.dart';
+import 'pagos/pagos_screen.dart';
 import 'pagos/cuentas_pago_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
@@ -18,7 +19,7 @@ class AdminHomeScreen extends ConsumerStatefulWidget {
 
 class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
   int _tab = 0;
-  static const _titulos = ['Clientes', 'Horarios', 'Planes', 'Avisos'];
+  static const _titulos = ['Clientes', 'Pagos', 'Horarios', 'Planes', 'Avisos'];
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +58,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         Expanded(
           child: IndexedStack(
             index: _tab,
-            children: const [ClientesListScreen(), HorariosScreen(), PlanesScreen(), AvisosScreen()],
+            children: const [ClientesListScreen(), PagosScreen(), HorariosScreen(), PlanesScreen(), AvisosScreen()],
           ),
         ),
       ]),
@@ -69,6 +70,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         },
         destinations: const [
           NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Clientes'),
+          NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Pagos'),
           NavigationDestination(icon: Icon(Icons.schedule_outlined), selectedIcon: Icon(Icons.schedule), label: 'Horarios'),
           NavigationDestination(
               icon: Icon(Icons.card_membership_outlined), selectedIcon: Icon(Icons.card_membership), label: 'Planes'),

@@ -7,6 +7,8 @@ import '../data/models/cuenta_pago.dart';
 import '../data/models/horario.dart';
 import '../data/models/medicion.dart';
 import '../data/models/plan.dart';
+import '../data/models/reporte_pagos.dart';
+import 'utils/periodo.dart';
 import '../data/models/solicitud.dart';
 import '../data/repositories/admin_repository.dart';
 import '../data/repositories/auth_repository.dart';
@@ -104,6 +106,13 @@ final misCuentasPagoProvider =
 final misComunicadosProvider =
     FutureProvider<List<Comunicado>>((ref) => ref.watch(perfilRepositoryProvider).misComunicados());
 
+/// Filtro del módulo de Pagos (por defecto: esta semana).
+final periodoPagosProvider = StateProvider<Periodo>((_) => Periodo.de(TipoPeriodo.semana));
+
+final reportePagosProvider = FutureProvider<ReportePagos>(
+  (ref) => ref.watch(adminRepositoryProvider).reportePagos(ref.watch(periodoPagosProvider)),
+);
+
 /// Solicitudes de plan por confirmar (admin).
 final solicitudesProvider =
     FutureProvider<List<Solicitud>>((ref) => ref.watch(adminRepositoryProvider).solicitudes());
@@ -127,4 +136,5 @@ void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(cuentasPagoProvider);
   ref.invalidate(comunicadosProvider);
   ref.invalidate(solicitudesProvider);
+  ref.invalidate(reportePagosProvider);
 }

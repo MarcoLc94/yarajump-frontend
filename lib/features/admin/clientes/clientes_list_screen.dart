@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/fechas.dart';
+import '../../../core/utils/periodo.dart';
 import '../../../data/models/cliente.dart';
 import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/estado_chip.dart';
+import '../../shared/widgets/filtro_periodo.dart';
 import '../../shared/widgets/ui.dart';
 import 'cliente_form_screen.dart';
 import '../solicitudes/solicitudes_screen.dart';
@@ -22,6 +25,7 @@ enum _Filtro { todos, sinPlan, activos, porVencer, expirados }
 class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
   String _busqueda = '';
   _Filtro _filtro = _Filtro.todos;
+  Periodo _alta = Periodo.de(TipoPeriodo.todos); // filtro por fecha de registro
 
   Future<void> _abrirForm([Cliente? c]) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => ClienteFormScreen(cliente: c)));
@@ -52,9 +56,14 @@ class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
         data: (lista) {
           final q = _busqueda.toLowerCase();
           final filtrados = lista
-              .where((c) => _pasa(c, _filtro) && (c.nombre.toLowerCase().contains(q) || c.email.contains(q)))
+              .where((c) =>
+                  _pasa(c, _filtro) &&
+                  (c.creadoEn == null || _alta.incluye(c.creadoEn!)) &&
+                  (c.nombre.toLowerCase().contains(q) || c.email.contains(q)))
               .toList();
-          int contar(_Filtro f) => lista.where((c) => _pasa(c, f)).length;
+          // Los contadores de estado respetan el filtro de fecha de registro
+          int contar(_Filtro f) =>
+              lista.where((c) => _pasa(c, f) && (c.creadoEn == null || _alta.incluye(c.creadoEn!))).length;
 
           final sinPlan = contar(_Filtro.sinPlan);
           final apartados = ref.watch(solicitudesProvider).value?.length ?? 0;
@@ -157,6 +166,23 @@ class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
                   ),
                 ),
               ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                  child: Text('Registrados',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(color: AppColors.textoSuave)),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: FiltroPeriodo(valor: _alta, conTodos: true, onCambio: (p) => setState(() => _alta = p)),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                  child: Text('${filtrados.length} cliente${filtrados.length == 1 ? '' : 's'} · más recientes primero',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: AppColors.textoSuave)),
+                ),
+              ),
               if (filtrados.isEmpty)
                 const SliverFillRemaining(
                   hasScrollBody: false,
@@ -201,6 +227,7 @@ class _ClienteCard extends StatelessWidget {
         ? (c.vinculado ? 'Registrado · sin plan' : 'Sin plan · aún no entra a la app')
         : '${c.planNombre} · ${c.frecuencia.etiqueta}';
     final horarios = c.horarios.map((h) => h.horaInicio).join(' · ');
+    final alta = c.creadoEn == null ? null : 'Alta: ${Fechas.relativa(c.creadoEn!).toLowerCase()}';
 
     return Card(
       clipBehavior: Clip.antiAlias,
@@ -227,7 +254,7 @@ class _ClienteCard extends StatelessWidget {
                     ),
                   ],
                 ]),
-                Text(detalle, style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
+                Text(alta == null ? detalle : '$detalle · $alta', style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
                 if (horarios.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 2),

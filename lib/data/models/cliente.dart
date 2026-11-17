@@ -74,6 +74,7 @@ class Cliente {
     this.estado = EstadoPlan.sinPlan,
     this.bloqueado = false,
     this.historial = const Historial(),
+    this.creadoEn,
   });
 
   final int? id;
@@ -99,6 +100,7 @@ class Cliente {
   final EstadoPlan estado;
   final bool bloqueado; // acceso denegado por seguridad
   final Historial historial;
+  final DateTime? creadoEn; // alta del cliente
 
   factory Cliente.fromJson(Map<String, dynamic> j) => Cliente(
         id: j['id'] as int,
@@ -124,6 +126,7 @@ class Cliente {
         estado: EstadoPlanX.fromApi(j['estado'] as String?),
         bloqueado: j['bloqueado'] as bool? ?? false,
         historial: Historial.fromJson(j['historial'] as Map<String, dynamic>?),
+        creadoEn: DateTime.tryParse(j['createdAt'] as String? ?? '')?.toLocal(),
       );
 
   /// Cuerpo para POST/PUT /admin/clientes (fechaFin la calcula el servidor).
