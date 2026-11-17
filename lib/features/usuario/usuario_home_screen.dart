@@ -36,6 +36,7 @@ class _UsuarioHomeScreenState extends ConsumerState<UsuarioHomeScreen> {
           ref.invalidate(miClienteProvider);
           ref.invalidate(misComunicadosProvider);
           ref.invalidate(misCuentasPagoProvider);
+          ref.invalidate(miSolicitudProvider);
           ref.invalidate(miProgresoProvider);
         },
         destinations: const [

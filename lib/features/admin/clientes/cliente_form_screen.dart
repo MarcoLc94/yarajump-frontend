@@ -9,6 +9,7 @@ import '../../../data/models/frecuencia.dart';
 import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/estado_chip.dart';
 import '../../shared/widgets/horario_tile.dart';
+import 'seguridad.dart';
 import '../../shared/widgets/ui.dart';
 import 'cliente_progreso_screen.dart';
 import 'registrar_pago_sheet.dart';
@@ -270,6 +271,38 @@ class _ClienteFormScreenState extends ConsumerState<ClienteFormScreen> {
                     : (_planId != null && c != null && c.planId == null ? 'Activar plan' : 'Guardar')),
               ),
             ),
+            if (c != null && c.vinculado) ...[
+              const SectionTitle('Seguridad'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                  HistorialChips(historial: c.historial, bloqueado: c.bloqueado),
+                  const SizedBox(height: 8),
+                  Text(
+                    c.bloqueado
+                        ? 'Este cliente no puede ver nada en la app ni apartar lugares.'
+                        : 'Si aparta lugares sin pagar para saturar los turnos, puedes bloquear su acceso.',
+                    style: t.bodySmall?.copyWith(color: AppColors.textoSuave),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    style: c.bloqueado
+                        ? null
+                        : OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.expirado,
+                            side: const BorderSide(color: AppColors.expirado),
+                          ),
+                    icon: Icon(c.bloqueado ? Icons.lock_open : Icons.gpp_bad_outlined),
+                    label: Text(c.bloqueado ? 'Desbloquear acceso' : 'Bloquear acceso por seguridad'),
+                    onPressed: () async {
+                      final cambio = await cambiarBloqueo(context, ref,
+                          clienteId: c.id!, nombre: c.nombre, bloquear: !c.bloqueado);
+                      if (cambio && context.mounted) Navigator.pop(context);
+                    },
+                  ),
+                ]),
+              ),
+            ],
           ],
         ),
       ),

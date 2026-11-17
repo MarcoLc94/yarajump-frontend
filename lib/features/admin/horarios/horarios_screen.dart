@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
@@ -50,8 +51,7 @@ class HorariosScreen extends ConsumerWidget {
                         for (final h in lista.where((h) => h.turno == turno))
                           HorarioTile(
                             horario: h,
-                            subtitulo: '${h.inscritos} cliente${h.inscritos == 1 ? '' : 's'}'
-                                '${h.activo ? '' : ' · Inactivo'}',
+                            subtitulo: '${_lugares(h)}${h.activo ? '' : ' · Inactivo'}',
                             trailing: const Icon(Icons.chevron_right, color: AppColors.textoSuave),
                             onTap: () => editarHorario(context, ref, h),
                           ),
@@ -62,6 +62,14 @@ class HorariosScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// "8/15 lugares ocupados · 7 libres" o "8 clientes · sin límite".
+String _lugares(Horario h) {
+  final pendientes = h.ocupados - h.inscritos;
+  final apartados = pendientes > 0 ? ' ($pendientes apartado${pendientes == 1 ? '' : 's'})' : '';
+  if (h.cupo == null) return '${h.ocupados} cliente${h.ocupados == 1 ? '' : 's'}$apartados · sin límite';
+  return '${h.ocupados}/${h.cupo} lugares ocupados$apartados · ${h.lleno ? 'Lleno' : '${h.libres} libres'}';
 }
 
 Future<void> editarHorario(BuildContext context, WidgetRef ref, [Horario? horario]) async {
@@ -107,6 +115,7 @@ class _HorarioSheetState extends State<_HorarioSheet> {
   late TimeOfDay _fin = _parse(widget.horario?.horaFin) ?? const TimeOfDay(hour: 8, minute: 0);
   late final Set<int> _dias = {...?widget.horario?.dias};
   late bool _activo = widget.horario?.activo ?? true;
+  late final _cupo = TextEditingController(text: widget.horario?.cupo?.toString());
 
   static TimeOfDay? _parse(String? s) {
     if (s == null || !s.contains(':')) return null;
@@ -121,6 +130,7 @@ class _HorarioSheetState extends State<_HorarioSheet> {
   @override
   void dispose() {
     _nombre.dispose();
+    _cupo.dispose();
     super.dispose();
   }
 
@@ -143,6 +153,10 @@ class _HorarioSheetState extends State<_HorarioSheet> {
     String? error;
     if (_dias.isEmpty) error = 'Elige al menos un día';
     if (_min(_fin) <= _min(_inicio)) error = 'La hora de fin debe ser después del inicio';
+    final cupo = int.tryParse(_cupo.text.trim());
+    if (_cupo.text.trim().isNotEmpty && (cupo == null || cupo < 1 || cupo > 1000)) {
+      error = 'El cupo debe ser de 1 a 1000 lugares (o vacío para sin límite)';
+    }
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
       return;
@@ -157,6 +171,7 @@ class _HorarioSheetState extends State<_HorarioSheet> {
         horaFin: _fmt(_fin),
         dias: (_dias.toList()..sort()),
         activo: _activo,
+        cupo: cupo,
       )),
     );
   }
@@ -225,6 +240,20 @@ class _HorarioSheetState extends State<_HorarioSheet> {
           TextField(
             controller: _nombre,
             decoration: const InputDecoration(labelText: 'Nombre (opcional)', hintText: 'Ej. Jumping principiantes'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _cupo,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              labelText: 'Cupo (lugares)',
+              hintText: 'Vacío = sin límite',
+              prefixIcon: const Icon(Icons.event_seat_outlined),
+              helperText: widget.horario == null
+                  ? 'Cuántos clientes caben. Se comparte entre todos los planes que ofrecen este turno.'
+                  : 'Ocupados ahora: ${widget.horario!.ocupados} (clientes + apartados)',
+            ),
           ),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,

@@ -8,6 +8,7 @@ import 'core/theme/app_theme.dart';
 import 'features/admin/admin_home_screen.dart';
 import 'features/auth/biometric_lock_screen.dart';
 import 'features/auth/biometric_setup_screen.dart';
+import 'features/auth/bloqueado_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/auth/no_registrado_screen.dart';
 import 'features/usuario/usuario_home_screen.dart';
@@ -49,6 +50,9 @@ class AuthGate extends ConsumerWidget {
 
     final s = session.value;
     if (s == null) return const LoginScreen();
+
+    // Bloqueado por seguridad: no ve nada más, ni siquiera se le pide la huella.
+    if (s.user.bloqueado) return const BloqueadoScreen();
 
     final bioState = bio.value!;
     // 1) Sesión guardada + huella activada → pedir huella

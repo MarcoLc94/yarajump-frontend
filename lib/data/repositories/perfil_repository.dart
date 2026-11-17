@@ -4,6 +4,8 @@ import '../models/cliente.dart';
 import '../models/comunicado.dart';
 import '../models/cuenta_pago.dart';
 import '../models/medicion.dart';
+import '../models/plan.dart';
+import '../models/solicitud.dart';
 
 /// Endpoints /me/* que usa el rol USUARIO.
 class PerfilRepository {
@@ -55,6 +57,22 @@ class PerfilRepository {
   Future<List<Comunicado>> misComunicados() async => ((await _api.get('/me/comunicados')) as List)
       .map((e) => Comunicado.fromJson(e as Map<String, dynamic>))
       .toList();
+
+  /// Planes activos con sus turnos y lugares libres.
+  Future<List<PlanOfertado>> planesOfertados() async => ((await _api.get('/me/planes')) as List)
+      .map((e) => PlanOfertado.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  /// Mi solicitud pendiente (null si no hay).
+  Future<Solicitud?> miSolicitud() async {
+    final r = await _api.get('/me/solicitud');
+    return r == null ? null : Solicitud.fromJson(r as Map<String, dynamic>);
+  }
+
+  Future<Solicitud> solicitarPlan(int planId, List<int> horarioIds) async =>
+      Solicitud.fromJson(await _api.post('/me/solicitud', {'planId': planId, 'horarioIds': horarioIds}) as Map<String, dynamic>);
+
+  Future<void> cancelarSolicitud() => _api.delete('/me/solicitud');
 
   Future<Map<String, dynamic>> config() async => await _api.get('/config') as Map<String, dynamic>;
 }

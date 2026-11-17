@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/dinero.dart';
 import '../../../core/utils/fechas.dart';
 import '../../../data/models/cliente.dart';
 import '../../../data/models/comunicado.dart';
+import '../../../data/models/solicitud.dart';
 import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/compartir_comprobante.dart';
 import '../../shared/widgets/cuenta_pago_visual.dart';
@@ -13,6 +15,7 @@ import '../../shared/widgets/estado_chip.dart';
 import '../../shared/widgets/horario_tile.dart';
 import '../../shared/widgets/ui.dart';
 import '../../shared/widgets/whatsapp_button.dart';
+import '../planes/planes_screen.dart';
 
 class MiPlanScreen extends ConsumerWidget {
   const MiPlanScreen({super.key});
@@ -20,6 +23,7 @@ class MiPlanScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final nombre = ref.watch(sessionProvider).value?.user.nombre ?? '';
+    final solicitud = ref.watch(miSolicitudProvider).value;
     return Scaffold(
       body: AsyncBody(
         value: ref.watch(miClienteProvider),
@@ -28,6 +32,7 @@ class MiPlanScreen extends ConsumerWidget {
           onRefresh: () {
             ref.invalidate(misComunicadosProvider);
             ref.invalidate(misCuentasPagoProvider);
+            ref.invalidate(miSolicitudProvider);
             return ref.refresh(miClienteProvider.future);
           },
           child: ListView(
@@ -35,7 +40,9 @@ class MiPlanScreen extends ConsumerWidget {
             children: [
               _Saludo(nombre: c?.nombre ?? nombre, fotoUrl: c?.fotoUrl, iniciales: c?.iniciales ?? '?'),
               const _AvisosYara(),
-              if (c == null || c.estado == EstadoPlan.sinPlan)
+              if (solicitud != null)
+                _SolicitudPendiente(solicitud: solicitud)
+              else if (c == null || c.estado == EstadoPlan.sinPlan)
                 _SinPlan(nombre: c?.nombre ?? nombre)
               else
                 _DetallePlan(cliente: c),
@@ -244,12 +251,12 @@ class _Aviso extends StatelessWidget {
       );
 }
 
-class _SinPlan extends StatelessWidget {
+class _SinPlan extends ConsumerWidget {
   const _SinPlan({required this.nombre});
   final String nombre;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = Theme.of(context).textTheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
@@ -275,11 +282,20 @@ class _SinPlan extends StatelessWidget {
           ]),
           const SizedBox(height: 12),
           Text(
-            'Aún no tienes un plan activo. Escríbele a Yara para elegir tu plan y tu horario; '
-            'en cuanto lo active lo verás aquí.',
+            'Aún no tienes un plan activo. Elige tu plan y tus turnos para apartar tu lugar, '
+            'o escríbele a Yara si tienes dudas.',
             style: t.bodyMedium?.copyWith(color: AppColors.textoSuave),
           ),
           const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () {
+              ref.invalidate(planesOfertadosProvider); // lugares al momento
+              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PlanesDisponiblesScreen()));
+            },
+            icon: const Icon(Icons.view_list_rounded),
+            label: const Text('Ver planes'),
+          ),
+          const SizedBox(height: 10),
           WhatsappButton(nombreCliente: nombre, texto: 'Activar mi plan por WhatsApp', motivo: MotivoWhatsapp.activar),
         ]),
       ),
@@ -378,5 +394,101 @@ class _DatosDePago extends ConsumerWidget {
         ]),
       ),
     ]);
+  }
+}
+
+/// El cliente apartó plan y turnos: espera a que Yara confirme su pago.
+class _SolicitudPendiente extends ConsumerWidget {
+  const _SolicitudPendiente({required this.solicitud});
+  final Solicitud solicitud;
+
+  Future<void> _cancelar(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Cancelar tu apartado?'),
+        content: const Text('Se liberarán tus lugares y otra persona podrá tomarlos.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+          FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Sí, cancelar')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await ref.read(perfilRepositoryProvider).cancelarSolicitud();
+      ref.invalidate(miSolicitudProvider);
+      ref.invalidate(planesOfertadosProvider);
+    } catch (e) {
+      if (context.mounted) mostrarError(context, e);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = Theme.of(context).textTheme;
+    final n = solicitud.horarios.length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.superficie,
+          borderRadius: BorderRadius.circular(AppTheme.radio),
+          border: Border.all(color: AppColors.porVencer.withValues(alpha: 0.5)),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: AppColors.porVencer.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(14)),
+              child: const Icon(Icons.event_seat_outlined, color: AppColors.porVencer),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Lugar apartado', style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800)),
+                Text('Esperando a que Yara confirme tu pago',
+                    style: t.bodySmall?.copyWith(color: AppColors.porVencer, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ]),
+          const SizedBox(height: 16),
+          Text(solicitud.planNombre, style: t.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+          for (final h in solicitud.horarios)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(children: [
+                Icon(h.turno.icono, size: 18, color: AppColors.textoSuave),
+                const SizedBox(width: 8),
+                Expanded(child: Text('${h.titulo} · ${h.diasTexto}', style: t.bodyMedium)),
+              ]),
+            ),
+          const Divider(height: 28),
+          Row(children: [
+            Expanded(
+              child: Text('$n turno${n == 1 ? '' : 's'} × ${dinero(solicitud.precio)}',
+                  style: t.bodyMedium?.copyWith(color: AppColors.textoSuave)),
+            ),
+            Text('Total ${dinero(solicitud.total)}',
+                style: t.titleMedium?.copyWith(fontWeight: FontWeight.w800, color: AppColors.primario)),
+          ]),
+          const SizedBox(height: 12),
+          Text('Paga con los datos de abajo y comparte tu comprobante para que Yara active tu plan.',
+              style: t.bodyMedium?.copyWith(color: AppColors.textoSuave)),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(foregroundColor: AppColors.expirado),
+              onPressed: () => _cancelar(context, ref),
+              icon: const Icon(Icons.close),
+              label: const Text('Cancelar apartado'),
+            ),
+          ),
+        ]),
+      ),
+    );
   }
 }

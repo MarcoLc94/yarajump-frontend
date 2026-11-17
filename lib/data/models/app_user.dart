@@ -8,6 +8,7 @@ class AppUser {
     this.nombre = '',
     this.fotoUrl,
     this.clienteId,
+    this.bloqueado = false,
   });
 
   final int id;
@@ -16,6 +17,7 @@ class AppUser {
   final String nombre;
   final String? fotoUrl;
   final int? clienteId;
+  final bool bloqueado; // acceso denegado por seguridad
 
   bool get esAdmin => rol == Rol.admin;
 
@@ -26,5 +28,6 @@ class AppUser {
         nombre: j['nombre'] as String? ?? '',
         fotoUrl: j['fotoUrl'] as String?,
         clienteId: j['clienteId'] as int?,
+        bloqueado: j['bloqueado'] as bool? ?? false,
       );
 }

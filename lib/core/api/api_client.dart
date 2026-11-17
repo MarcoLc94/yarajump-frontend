@@ -5,9 +5,10 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 class ApiException implements Exception {
-  ApiException(this.status, this.message);
+  ApiException(this.status, this.message, {this.codigo});
   final int? status; // null = sin conexión
   final String message;
+  final String? codigo; // p. ej. "bloqueado"
   @override
   String toString() => message;
 }
@@ -26,6 +27,9 @@ class ApiClient {
 
   /// Se llama cuando la API responde 401 (sesión expirada).
   void Function()? onUnauthorized;
+
+  /// Se llama cuando la API responde que la cuenta fue bloqueada por seguridad.
+  void Function()? onBloqueado;
 
   Future<String?> loadToken() async => _token = await _storage.read(key: _tokenKey);
 
@@ -86,6 +90,8 @@ class ApiClient {
       onUnauthorized?.call();
     }
     final msg = data is Map && data['error'] is String ? data['error'] as String : 'Error ${resp.statusCode}';
-    throw ApiException(resp.statusCode, msg);
+    final codigo = data is Map ? data['codigo'] as String? : null;
+    if (codigo == 'bloqueado') onBloqueado?.call();
+    throw ApiException(resp.statusCode, msg, codigo: codigo);
   }
 }

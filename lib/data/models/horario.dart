@@ -26,6 +26,9 @@ class Horario {
     required this.dias,
     this.activo = true,
     this.inscritos = 0,
+    this.cupo,
+    this.ocupados = 0,
+    this.libres,
   });
 
   final int? id;
@@ -36,6 +39,19 @@ class Horario {
   final List<int> dias;
   final bool activo;
   final int inscritos;
+  final int? cupo; // lugares; null = sin límite
+  final int ocupados; // clientes + solicitudes pendientes
+  final int? libres; // null = sin límite
+
+  bool get lleno => libres != null && libres! <= 0;
+
+  /// "Quedan 3 lugares", "Último lugar", "Lleno" o "Lugares disponibles" (sin límite).
+  String get lugaresTexto => switch (libres) {
+        null => 'Lugares disponibles',
+        <= 0 => 'Lleno',
+        1 => 'Último lugar',
+        final n => 'Quedan $n lugares',
+      };
 
   String get rango => '$horaInicio – $horaFin';
 
@@ -59,6 +75,9 @@ class Horario {
         dias: ((j['dias'] as List?) ?? []).map((e) => (e as num).toInt()).toList(),
         activo: j['activo'] as bool? ?? true,
         inscritos: j['inscritos'] as int? ?? 0,
+        cupo: j['cupo'] as int?,
+        ocupados: j['ocupados'] as int? ?? 0,
+        libres: j['libres'] as int?,
       );
 
   Map<String, dynamic> toJson() => {
@@ -68,5 +87,6 @@ class Horario {
         'horaFin': horaFin,
         'dias': dias,
         'activo': activo,
+        'cupo': cupo,
       };
 }

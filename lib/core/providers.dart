@@ -7,6 +7,7 @@ import '../data/models/cuenta_pago.dart';
 import '../data/models/horario.dart';
 import '../data/models/medicion.dart';
 import '../data/models/plan.dart';
+import '../data/models/solicitud.dart';
 import '../data/repositories/admin_repository.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/perfil_repository.dart';
@@ -32,7 +33,10 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   @override
   Future<Session?> build() {
     // Si la API responde 401 en cualquier pantalla, se cierra la sesión.
-    ref.read(apiClientProvider).onUnauthorized = () => state = const AsyncData(null);
+    final api = ref.read(apiClientProvider);
+    api.onUnauthorized = () => state = const AsyncData(null);
+    // Si la bloquean a mitad de sesión, recarga /me para mostrar la pantalla de bloqueo.
+    api.onBloqueado = () => refrescar().ignore();
     return _repo.restaurar();
   }
 
@@ -100,6 +104,17 @@ final misCuentasPagoProvider =
 final misComunicadosProvider =
     FutureProvider<List<Comunicado>>((ref) => ref.watch(perfilRepositoryProvider).misComunicados());
 
+/// Solicitudes de plan por confirmar (admin).
+final solicitudesProvider =
+    FutureProvider<List<Solicitud>>((ref) => ref.watch(adminRepositoryProvider).solicitudes());
+
+/// Planes con turnos y lugares libres (rol usuario, "Ver planes").
+final planesOfertadosProvider =
+    FutureProvider<List<PlanOfertado>>((ref) => ref.watch(perfilRepositoryProvider).planesOfertados());
+
+/// Mi solicitud de plan pendiente (rol usuario).
+final miSolicitudProvider = FutureProvider<Solicitud?>((ref) => ref.watch(perfilRepositoryProvider).miSolicitud());
+
 /// Mi plan (rol usuario).
 final miClienteProvider = FutureProvider<Cliente?>((ref) => ref.watch(perfilRepositoryProvider).miCliente());
 
@@ -111,4 +126,5 @@ void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(horariosProvider);
   ref.invalidate(cuentasPagoProvider);
   ref.invalidate(comunicadosProvider);
+  ref.invalidate(solicitudesProvider);
 }

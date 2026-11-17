@@ -27,6 +27,30 @@ extension EstadoPlanX on EstadoPlan {
       EstadoPlan.values.firstWhere((e) => e.api == s, orElse: () => EstadoPlan.sinPlan);
 }
 
+/// Apartados (solicitudes) y pagos de un cliente: sirve para detectar abuso.
+class Historial {
+  const Historial({this.apartados = 0, this.cancelados = 0, this.rechazados = 0, this.pagos = 0});
+  final int apartados;
+  final int cancelados;
+  final int rechazados;
+  final int pagos;
+
+  /// Apartados que no terminaron en pago (cancelados por el cliente o rechazados).
+  int get sinConcretar => cancelados + rechazados;
+
+  /// 3 o más apartados sin concretar y más que pagos: vale la pena revisarlo.
+  bool get sospechoso => sinConcretar >= 3 && sinConcretar > pagos;
+
+  factory Historial.fromJson(Map<String, dynamic>? j) => j == null
+      ? const Historial()
+      : Historial(
+          apartados: j['apartados'] as int? ?? 0,
+          cancelados: j['cancelados'] as int? ?? 0,
+          rechazados: j['rechazados'] as int? ?? 0,
+          pagos: j['pagos'] as int? ?? 0,
+        );
+}
+
 class Cliente {
   const Cliente({
     this.id,
@@ -48,6 +72,8 @@ class Cliente {
     this.horarios = const [],
     this.diasRestantes,
     this.estado = EstadoPlan.sinPlan,
+    this.bloqueado = false,
+    this.historial = const Historial(),
   });
 
   final int? id;
@@ -71,6 +97,8 @@ class Cliente {
 
   final int? diasRestantes;
   final EstadoPlan estado;
+  final bool bloqueado; // acceso denegado por seguridad
+  final Historial historial;
 
   factory Cliente.fromJson(Map<String, dynamic> j) => Cliente(
         id: j['id'] as int,
@@ -94,6 +122,8 @@ class Cliente {
             .toList(),
         diasRestantes: j['diasRestantes'] as int?,
         estado: EstadoPlanX.fromApi(j['estado'] as String?),
+        bloqueado: j['bloqueado'] as bool? ?? false,
+        historial: Historial.fromJson(j['historial'] as Map<String, dynamic>?),
       );
 
   /// Cuerpo para POST/PUT /admin/clientes (fechaFin la calcula el servidor).

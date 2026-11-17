@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../data/models/frecuencia.dart';
+import '../../../data/models/horario.dart';
 import '../../../data/models/plan.dart';
 import '../../shared/widgets/async_body.dart';
+
+String _turnos(int n) => n == 0 ? 'sin turnos' : '$n turno${n == 1 ? '' : 's'}';
 
 class PlanesScreen extends ConsumerWidget {
   const PlanesScreen({super.key});
@@ -30,7 +34,8 @@ class PlanesScreen extends ConsumerWidget {
                           child: ListTile(
                             title: Text(p.nombre),
                             subtitle: Text('${p.frecuenciaSugerida.etiqueta}'
-                                '${p.descripcion.isNotEmpty ? ' · ${p.descripcion}' : ''}'),
+                                ' · ${_turnos(p.horarioIds?.length ?? 0)}'
+                                '${p.descripcion.isNotEmpty ? '\n${p.descripcion}' : ''}'),
                             trailing: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               crossAxisAlignment: CrossAxisAlignment.end,
@@ -54,6 +59,10 @@ class PlanesScreen extends ConsumerWidget {
     final desc = TextEditingController(text: plan?.descripcion);
     var frecuencia = plan?.frecuenciaSugerida ?? Frecuencia.mensual;
     var activo = plan?.activo ?? true;
+    final elegidos = <int>{...?plan?.horarioIds};
+    final horarios = (ref.read(horariosProvider).value ?? const <Horario>[])
+        .where((h) => h.activo || elegidos.contains(h.id))
+        .toList();
 
     final accion = await showDialog<String>(
       context: context,
@@ -78,6 +87,32 @@ class PlanesScreen extends ConsumerWidget {
                 items: Frecuencia.values.map((f) => DropdownMenuItem(value: f, child: Text(f.etiqueta))).toList(),
                 onChanged: (f) => setState(() => frecuencia = f!),
               ),
+              const SizedBox(height: 16),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Turnos que ofrece (${elegidos.length})',
+                    style: Theme.of(ctx).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              const SizedBox(height: 4),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Los clientes solo pueden apartar estos turnos al elegir el plan.',
+                    style: Theme.of(ctx).textTheme.bodySmall?.copyWith(color: AppColors.textoSuave)),
+              ),
+              const SizedBox(height: 8),
+              if (horarios.isEmpty)
+                const Text('Primero crea horarios en la pestaña "Horarios".')
+              else
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final h in horarios)
+                    FilterChip(
+                      avatar: Icon(h.turno.icono, size: 18),
+                      label: Text('${h.titulo} · ${h.diasTexto}'
+                          '${h.cupo == null ? '' : ' · ${h.cupo} lugares'}'),
+                      selected: elegidos.contains(h.id),
+                      onSelected: (v) => setState(() => v ? elegidos.add(h.id!) : elegidos.remove(h.id)),
+                    ),
+                ]),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 title: const Text('Activo'),
@@ -106,6 +141,7 @@ class PlanesScreen extends ConsumerWidget {
           descripcion: desc.text.trim(),
           frecuenciaSugerida: frecuencia,
           activo: activo,
+          horarioIds: elegidos.toList(),
         ));
       } else if (accion == 'eliminar') {
         await repo.eliminarPlan(plan!.id!);

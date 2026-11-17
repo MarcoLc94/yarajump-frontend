@@ -8,6 +8,7 @@ import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/estado_chip.dart';
 import '../../shared/widgets/ui.dart';
 import 'cliente_form_screen.dart';
+import '../solicitudes/solicitudes_screen.dart';
 import 'registrar_pago_sheet.dart';
 
 class ClientesListScreen extends ConsumerStatefulWidget {
@@ -56,6 +57,7 @@ class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
           int contar(_Filtro f) => lista.where((c) => _pasa(c, f)).length;
 
           final sinPlan = contar(_Filtro.sinPlan);
+          final apartados = ref.watch(solicitudesProvider).value?.length ?? 0;
 
           return RefreshIndicator(
             onRefresh: () => ref.refresh(clientesProvider.future),
@@ -69,6 +71,38 @@ class _ClientesListScreenState extends ConsumerState<ClientesListScreen> {
                   ),
                 ),
               ),
+              if (apartados > 0)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                    child: Material(
+                      color: AppColors.porVencer.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppTheme.radio),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(AppTheme.radio),
+                        onTap: () async {
+                          await Navigator.of(context)
+                              .push(MaterialPageRoute(builder: (_) => const SolicitudesScreen()));
+                          refrescarAdmin(ref);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(14),
+                          child: Row(children: [
+                            const Icon(Icons.event_seat_outlined, color: AppColors.porVencer),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                '$apartados apartado${apartados == 1 ? '' : 's'} de plan por confirmar',
+                                style: const TextStyle(color: AppColors.porVencer, fontWeight: FontWeight.w700),
+                              ),
+                            ),
+                            const Icon(Icons.chevron_right, color: AppColors.porVencer),
+                          ]),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               if (sinPlan > 0 && _filtro != _Filtro.sinPlan)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -180,7 +214,19 @@ class _ClienteCard extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(c.nombre, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                Row(children: [
+                  Flexible(child: Text(c.nombre, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
+                  if (c.bloqueado || c.historial.sospechoso) ...[
+                    const SizedBox(width: 6),
+                    Tooltip(
+                      message: c.bloqueado
+                          ? 'Bloqueado por seguridad'
+                          : '${c.historial.sinConcretar} apartados sin pagar',
+                      child: Icon(c.bloqueado ? Icons.block : Icons.warning_amber_rounded,
+                          size: 16, color: AppColors.expirado),
+                    ),
+                  ],
+                ]),
                 Text(detalle, style: t.bodySmall?.copyWith(color: AppColors.textoSuave)),
                 if (horarios.isNotEmpty)
                   Padding(

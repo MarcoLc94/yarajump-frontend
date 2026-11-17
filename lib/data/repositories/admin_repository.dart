@@ -6,6 +6,7 @@ import '../models/cuenta_pago.dart';
 import '../models/horario.dart';
 import '../models/medicion.dart';
 import '../models/plan.dart';
+import '../models/solicitud.dart';
 
 /// Endpoints /admin/* (solo rol administrador).
 class AdminRepository {
@@ -37,6 +38,10 @@ class AdminRepository {
   }
 
   Future<void> eliminarCliente(int id) => _api.delete('/admin/clientes/$id');
+
+  /// Bloquea (o desbloquea) el acceso del cliente por seguridad. Al bloquear se liberan sus apartados.
+  Future<Cliente> bloquearCliente(int id, {required bool bloquear}) async => Cliente.fromJson(
+      await _api.post('/admin/clientes/$id/${bloquear ? 'bloquear' : 'desbloquear'}') as Map<String, dynamic>);
 
   // ---------- Pagos ----------
   Future<List<Pago>> pagos(int clienteId) async => ((await _api.get('/admin/clientes/$clienteId/pagos')) as List)
@@ -118,6 +123,18 @@ class AdminRepository {
   }
 
   Future<void> eliminarComunicado(int id) => _api.delete('/admin/comunicados/$id');
+
+  // ---------- Solicitudes de plan ----------
+  Future<List<Solicitud>> solicitudes({String estado = 'pendiente'}) async =>
+      ((await _api.get('/admin/solicitudes', query: {'estado': estado})) as List)
+          .map((e) => Solicitud.fromJson(e as Map<String, dynamic>))
+          .toList();
+
+  /// Activa el plan con los turnos pedidos y registra el pago (por defecto, el total).
+  Future<void> aprobarSolicitud(int id, {double? monto}) =>
+      _api.post('/admin/solicitudes/$id/aprobar', monto == null ? null : {'monto': monto});
+
+  Future<void> rechazarSolicitud(int id) => _api.post('/admin/solicitudes/$id/rechazar');
 
   // ---------- Recordatorios ----------
   Future<List<Cliente>> recordatorios() async => ((await _api.get('/admin/recordatorios')) as List)
