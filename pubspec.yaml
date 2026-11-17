@@ -60,3 +60,8 @@ flutter_launcher_icons:
   adaptive_icon_background: "#FFFFFF"
   adaptive_icon_foreground: assets/images/logo.png
   adaptive_icon_foreground_inset: 16
+  web:
+    generate: true
+    image_path: assets/images/logo.png
+    background_color: "#F7F4FA"
+    theme_color: "#D6247A"
