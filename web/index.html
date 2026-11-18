@@ -52,6 +52,44 @@
       setTimeout(function () { s.remove(); }, 300);
     });
   </script>
+  <script>
+    // Notificaciones push (Firebase Cloud Messaging). Lo usa lib/services/push_web.
+    // El service worker vive en /app/push/ (dentro de la PWA) para que iPhone lo acepte.
+    window.yaraPush = {
+      estado: function () {
+        var ios = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        var instalada = navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+        if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+          return ios && !instalada ? 'instalar' : 'no';
+        }
+        return Notification.permission; // default | granted | denied
+      },
+      token: async function (vapidKey, pedir) {
+        var permiso = Notification.permission;
+        // Sin await antes: Safari solo pide permiso si la llamada viene directo del toque.
+        if (pedir && permiso === 'default') permiso = await Notification.requestPermission();
+        if (permiso !== 'granted') return null;
+        var base = document.baseURI;
+        var reg = await navigator.serviceWorker.register(new URL('firebase-messaging-sw.js', base).href,
+          { scope: new URL('push/', base).href });
+        var m = window.firebase_messaging;
+        if (!m) return null;
+        var messaging = m.getMessaging();
+        if (!window.yaraPushEscuchando) {
+          window.yaraPushEscuchando = true;
+          // Con la app abierta FCM no muestra nada por sí solo.
+          m.onMessage(messaging, function (p) {
+            var n = p.notification || {};
+            reg.showNotification(n.title || 'Yara Jump', {
+              body: n.body || '', icon: new URL('icons/Icon-192.png', base).href,
+            });
+          });
+        }
+        return await m.getToken(messaging, { vapidKey: vapidKey, serviceWorkerRegistration: reg });
+      },
+    };
+  </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

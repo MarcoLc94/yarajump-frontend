@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
@@ -61,7 +62,16 @@ class ApiClient {
         'Accept': 'application/json',
         if (json) 'Content-Type': 'application/json',
         if (_token != null) 'Authorization': 'Bearer $_token',
+        'X-Plataforma': _plataforma, // para el historial de accesos del backoffice
       };
+
+  static final _plataforma = kIsWeb
+      ? 'web'
+      : switch (defaultTargetPlatform) {
+          TargetPlatform.android => 'android',
+          TargetPlatform.iOS => 'ios',
+          _ => '',
+        };
 
   Future<dynamic> _send(String method, String path, {Object? body, Map<String, String>? query}) {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);

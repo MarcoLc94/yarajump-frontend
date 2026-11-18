@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+import '../data/models/usuario_bo.dart';
 import '../data/models/cliente.dart';
 import '../data/models/comunicado.dart';
 import '../data/models/cuenta_pago.dart';
@@ -128,6 +129,11 @@ final miSolicitudProvider = FutureProvider<Solicitud?>((ref) => ref.watch(perfil
 final miClienteProvider = FutureProvider<Cliente?>((ref) => ref.watch(perfilRepositoryProvider).miCliente());
 
 /// Invalida todo lo que muestra la admin (después de crear/editar/pagar).
+// ---------- Backoffice (support) ----------
+final usuariosBOProvider = FutureProvider<List<UsuarioBO>>((ref) => ref.watch(adminRepositoryProvider).usuariosBO());
+final accesosBOProvider =
+    FutureProvider.family<List<Acceso>, int>((ref, id) => ref.watch(adminRepositoryProvider).accesosBO(id));
+
 void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(clientesProvider);
   ref.invalidate(recordatoriosProvider);
@@ -137,4 +143,5 @@ void refrescarAdmin(WidgetRef ref) {
   ref.invalidate(comunicadosProvider);
   ref.invalidate(solicitudesProvider);
   ref.invalidate(reportePagosProvider);
+  ref.invalidate(usuariosBOProvider);
 }

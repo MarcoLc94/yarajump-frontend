@@ -10,6 +10,7 @@ import 'planes/planes_screen.dart';
 import 'avisos/avisos_screen.dart';
 import 'pagos/pagos_screen.dart';
 import 'pagos/cuentas_pago_screen.dart';
+import '../support/backoffice_screen.dart';
 
 class AdminHomeScreen extends ConsumerStatefulWidget {
   const AdminHomeScreen({super.key});
@@ -19,11 +20,14 @@ class AdminHomeScreen extends ConsumerStatefulWidget {
 
 class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
   int _tab = 0;
-  static const _titulos = ['Clientes', 'Pagos', 'Horarios', 'Planes', 'Avisos'];
+  static const _titulos = ['Clientes', 'Pagos', 'Horarios', 'Planes', 'Avisos', 'Backoffice'];
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    // Support ve lo mismo que admin más el backoffice.
+    final support = ref.watch(sessionProvider).value?.user.esSupport ?? false;
+    final tab = support ? _tab : _tab.clamp(0, 4);
     return Scaffold(
       body: Column(children: [
         GradientHeader(
@@ -38,7 +42,7 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(AppConstants.nombreNegocio, style: t.bodySmall?.copyWith(color: Colors.white70)),
-                Text(_titulos[_tab], style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
+                Text(_titulos[tab], style: t.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w800)),
               ]),
             ),
             IconButton(
@@ -57,25 +61,42 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen> {
         ),
         Expanded(
           child: IndexedStack(
-            index: _tab,
-            children: const [ClientesListScreen(), PagosScreen(), HorariosScreen(), PlanesScreen(), AvisosScreen()],
+            index: tab,
+            children: [
+              const ClientesListScreen(),
+              const PagosScreen(),
+              const HorariosScreen(),
+              const PlanesScreen(),
+              const AvisosScreen(),
+              if (support) const BackofficeScreen(),
+            ],
           ),
         ),
       ]),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
+        selectedIndex: tab,
+        // Con 6 pestañas no caben todas las etiquetas en el teléfono
+        labelBehavior: support ? NavigationDestinationLabelBehavior.onlyShowSelected : null,
         onDestinationSelected: (i) {
           setState(() => _tab = i);
           refrescarAdmin(ref); // datos frescos al cambiar de pestaña
         },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Clientes'),
-          NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Pagos'),
-          NavigationDestination(icon: Icon(Icons.schedule_outlined), selectedIcon: Icon(Icons.schedule), label: 'Horarios'),
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
+              icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: 'Clientes'),
+          const NavigationDestination(
+              icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Pagos'),
+          const NavigationDestination(
+              icon: Icon(Icons.schedule_outlined), selectedIcon: Icon(Icons.schedule), label: 'Horarios'),
+          const NavigationDestination(
               icon: Icon(Icons.card_membership_outlined), selectedIcon: Icon(Icons.card_membership), label: 'Planes'),
-          NavigationDestination(
+          const NavigationDestination(
               icon: Icon(Icons.notifications_outlined), selectedIcon: Icon(Icons.notifications), label: 'Avisos'),
+          if (support)
+            const NavigationDestination(
+                icon: Icon(Icons.admin_panel_settings_outlined),
+                selectedIcon: Icon(Icons.admin_panel_settings),
+                label: 'Backoffice'),
         ],
       ),
     );

@@ -9,6 +9,7 @@ import '../models/medicion.dart';
 import '../models/plan.dart';
 import '../models/reporte_pagos.dart';
 import '../models/solicitud.dart';
+import '../models/usuario_bo.dart';
 
 /// Endpoints /admin/* (solo rol administrador).
 class AdminRepository {
@@ -154,4 +155,20 @@ class AdminRepository {
   Future<List<Cliente>> recordatorios() async => ((await _api.get('/admin/recordatorios')) as List)
       .map((e) => Cliente.fromJson(e as Map<String, dynamic>))
       .toList();
+
+  // ---------- Backoffice (solo support) ----------
+  Future<List<UsuarioBO>> usuariosBO() async => ((await _api.get('/support/usuarios')) as List)
+      .map((e) => UsuarioBO.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  Future<List<Acceso>> accesosBO(int userId) async => ((await _api.get('/support/usuarios/$userId/accesos')) as List)
+      .map((e) => Acceso.fromJson(e as Map<String, dynamic>))
+      .toList();
+
+  /// Solo se mandan los campos que cambian.
+  Future<UsuarioBO> editarUsuarioBO(int userId, Map<String, dynamic> cambios) async =>
+      UsuarioBO.fromJson(await _api.patch('/support/usuarios/$userId', cambios) as Map<String, dynamic>);
+
+  Future<void> eliminarUsuarioBO(int userId, {required bool conCliente}) =>
+      _api.delete('/support/usuarios/$userId${conCliente ? '?cliente=true' : ''}');
 }

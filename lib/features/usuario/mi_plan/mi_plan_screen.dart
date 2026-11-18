@@ -8,6 +8,8 @@ import '../../../core/utils/fechas.dart';
 import '../../../data/models/cliente.dart';
 import '../../../data/models/comunicado.dart';
 import '../../../data/models/solicitud.dart';
+import '../../../services/notification_service.dart';
+import '../../../services/push_web/push_web.dart';
 import '../../shared/widgets/async_body.dart';
 import '../../shared/widgets/compartir_comprobante.dart';
 import '../../shared/widgets/cuenta_pago_visual.dart';
@@ -39,6 +41,7 @@ class MiPlanScreen extends ConsumerWidget {
             padding: EdgeInsets.zero,
             children: [
               _Saludo(nombre: c?.nombre ?? nombre, fotoUrl: c?.fotoUrl, iniciales: c?.iniciales ?? '?'),
+              const _ActivarNotificaciones(),
               const _AvisosYara(),
               if (solicitud != null)
                 _SolicitudPendiente(solicitud: solicitud)
@@ -249,6 +252,88 @@ class _Aviso extends StatelessWidget {
           Expanded(child: Text(texto, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
         ]),
       );
+}
+
+/// Solo PWA: invita a activar las notificaciones (o a instalar la app en iPhone, que es requisito).
+class _ActivarNotificaciones extends StatefulWidget {
+  const _ActivarNotificaciones();
+  @override
+  State<_ActivarNotificaciones> createState() => _ActivarNotificacionesState();
+}
+
+class _ActivarNotificacionesState extends State<_ActivarNotificaciones> {
+  static bool _oculta = false; // "Ahora no": hasta que vuelva a abrir la app
+  bool _cargando = false;
+
+  void _activar() {
+    setState(() => _cargando = true);
+    // Sin await antes de activarWeb: el permiso debe pedirse dentro del toque.
+    NotificationService.instance.activarWeb().then((ok) {
+      if (!mounted) return;
+      setState(() => _cargando = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok
+            ? 'Listo, te avisaremos aquí 🔔'
+            : 'No se activaron. Puedes permitirlas en los ajustes del navegador.'),
+      ));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return ValueListenableBuilder(
+      valueListenable: NotificationService.instance.estadoWeb,
+      builder: (context, estado, _) {
+        final iphone = estado == EstadoPushWeb.instalarEnIphone;
+        if (_oculta || (estado != EstadoPushWeb.pendiente && !iphone)) return const SizedBox.shrink();
+        return Card(
+          margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 8, 8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Icon(Icons.notifications_active_outlined, color: AppColors.primario),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('Recibe los avisos de Yara',
+                        style: t.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      iphone
+                          ? 'En iPhone primero instala la app: ábrela en Safari, toca Compartir '
+                              '(el cuadro con flecha) y luego "Agregar a pantalla de inicio". '
+                              'Entra desde el ícono y activa las notificaciones.'
+                          : 'Te avisamos cuando se apruebe tu lugar, cuando tu plan esté por vencer '
+                              'y cuando Yara publique algo.',
+                      style: t.bodySmall?.copyWith(color: AppColors.textoSuave),
+                    ),
+                  ]),
+                ),
+              ]),
+              Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                TextButton(
+                  onPressed: () => setState(() => _oculta = true),
+                  child: Text(iphone ? 'Entendido' : 'Ahora no'),
+                ),
+                if (!iphone)
+                  FilledButton.icon(
+                    // El tema hace los botones de ancho completo; aquí va junto a "Ahora no"
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, 42)),
+                    onPressed: _cargando ? null : _activar,
+                    icon: _cargando
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.notifications_outlined, size: 18),
+                    label: const Text('Activar'),
+                  ),
+              ]),
+            ]),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _SinPlan extends ConsumerWidget {
