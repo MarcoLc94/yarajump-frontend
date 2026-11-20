@@ -171,4 +171,11 @@ class AdminRepository {
 
   Future<void> eliminarUsuarioBO(int userId, {required bool conCliente}) =>
       _api.delete('/support/usuarios/$userId${conCliente ? '?cliente=true' : ''}');
+
+  /// Ajustes de la app (WhatsApp de Yara y correo de contacto). Solo support.
+  Future<Map<String, String>> ajustes() async =>
+      ((await _api.get('/support/ajustes')) as Map<String, dynamic>).map((k, v) => MapEntry(k, '${v ?? ''}'));
+
+  Future<Map<String, String>> guardarAjustes(Map<String, String> cambios) async =>
+      ((await _api.put('/support/ajustes', cambios)) as Map<String, dynamic>).map((k, v) => MapEntry(k, '${v ?? ''}'));
 }

@@ -32,6 +32,9 @@ class ApiClient {
   /// Se llama cuando la API responde que la cuenta fue bloqueada por seguridad.
   void Function()? onBloqueado;
 
+  /// Se llama cuando la API niega algo por rol (p. ej. le quitaron el admin a mitad de sesión).
+  void Function()? onSinPermiso;
+
   Future<String?> loadToken() async => _token = await _storage.read(key: _tokenKey);
 
   Future<void> saveToken(String token) async {
@@ -102,6 +105,7 @@ class ApiClient {
     final msg = data is Map && data['error'] is String ? data['error'] as String : 'Error ${resp.statusCode}';
     final codigo = data is Map ? data['codigo'] as String? : null;
     if (codigo == 'bloqueado') onBloqueado?.call();
+    if (codigo == 'rol') onSinPermiso?.call();
     throw ApiException(resp.statusCode, msg, codigo: codigo);
   }
 }

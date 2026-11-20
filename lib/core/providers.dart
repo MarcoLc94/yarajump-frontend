@@ -40,6 +40,8 @@ class SessionNotifier extends AsyncNotifier<Session?> {
     api.onUnauthorized = () => state = const AsyncData(null);
     // Si la bloquean a mitad de sesión, recarga /me para mostrar la pantalla de bloqueo.
     api.onBloqueado = () => refrescar().ignore();
+    // Si le cambiaron el rol, recarga /me para mostrar la pantalla que le toca.
+    api.onSinPermiso = () => refrescarSiCambio().ignore();
     return _repo.restaurar();
   }
 
@@ -54,6 +56,27 @@ class SessionNotifier extends AsyncNotifier<Session?> {
   Future<void> refrescar() async {
     final s = await _repo.me();
     state = AsyncData(s);
+  }
+
+  bool _revisando = false;
+
+  /// Vuelve a pedir /me y solo cambia la sesión si cambió el rol, el bloqueo o su ficha de
+  /// cliente (así la app pasa sola a la pantalla de admin cuando soporte le cambia el rol).
+  Future<void> refrescarSiCambio() async {
+    final actual = state.value;
+    if (actual == null || _revisando) return;
+    _revisando = true;
+    try {
+      final s = await _repo.me();
+      final a = actual.user, b = s.user;
+      if (state.value != null && (a.rol != b.rol || a.bloqueado != b.bloqueado || a.clienteId != b.clienteId)) {
+        state = AsyncData(s);
+      }
+    } catch (_) {
+      // Sin red o sesión vencida (el 401 ya cierra la sesión por su lado).
+    } finally {
+      _revisando = false;
+    }
   }
 
   Future<void> logout() async {
@@ -131,6 +154,7 @@ final miClienteProvider = FutureProvider<Cliente?>((ref) => ref.watch(perfilRepo
 /// Invalida todo lo que muestra la admin (después de crear/editar/pagar).
 // ---------- Backoffice (support) ----------
 final usuariosBOProvider = FutureProvider<List<UsuarioBO>>((ref) => ref.watch(adminRepositoryProvider).usuariosBO());
+final ajustesProvider = FutureProvider<Map<String, String>>((ref) => ref.watch(adminRepositoryProvider).ajustes());
 final accesosBOProvider =
     FutureProvider.family<List<Acceso>, int>((ref, id) => ref.watch(adminRepositoryProvider).accesosBO(id));
 

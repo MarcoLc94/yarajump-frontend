@@ -8,6 +8,7 @@ import '../../data/models/app_user.dart';
 import '../../data/models/usuario_bo.dart';
 import '../shared/widgets/async_body.dart';
 import '../shared/widgets/ui.dart';
+import 'ajustes_screen.dart';
 import 'usuario_bo_screen.dart';
 
 enum FiltroBO {
@@ -119,10 +120,14 @@ class _BackofficeScreenState extends ConsumerState<BackofficeScreen> {
       data: (todos) {
         final lista = _aplicar(todos);
         return RefreshIndicator(
-          onRefresh: () => ref.refresh(usuariosBOProvider.future),
+          onRefresh: () {
+            ref.invalidate(ajustesProvider);
+            return ref.refresh(usuariosBOProvider.future);
+          },
           child: ListView(
             padding: const EdgeInsets.only(bottom: 24),
             children: [
+              const AjustesCard(),
               _Resumen(usuarios: todos),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

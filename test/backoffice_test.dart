@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:yara_jumping/data/models/app_user.dart';
 import 'package:yara_jumping/data/models/usuario_bo.dart';
+import 'package:yara_jumping/features/support/ajustes_screen.dart';
 import 'package:yara_jumping/features/support/backoffice_screen.dart';
 
 void main() {
@@ -35,5 +36,12 @@ void main() {
     expect(u.nombreVisible, 'ana');
     expect(u.esCliente, isTrue);
     expect(u.ultimaActividad, isNull);
+  });
+
+  test('formato del WhatsApp', () {
+    expect(formatoWhatsapp('525512345678'), '+52 55 1234 5678');
+    expect(formatoWhatsapp('52 1 55 1234 5678'), '+52 1 55 1234 5678');
+    expect(formatoWhatsapp('14155550000'), '+14155550000');
+    expect(formatoWhatsapp(''), 'Sin configurar');
   });
 }

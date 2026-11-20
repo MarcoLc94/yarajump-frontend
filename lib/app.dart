@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,11 +37,39 @@ class YaraJumpingApp extends StatelessWidget {
 }
 
 /// Decide qué pantalla mostrar según la sesión, la huella y el rol.
-class AuthGate extends ConsumerWidget {
+/// Revisa el rol al volver a la app y cada 30 s: si soporte la hace admin, cambia sola.
+class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
+  @override
+  ConsumerState<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<AuthGate> with WidgetsBindingObserver {
+  Timer? _timer;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) => _revisar());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _revisar();
+  }
+
+  void _revisar() => ref.read(sessionProvider.notifier).refrescarSiCambio();
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
     final bio = ref.watch(biometricStateProvider);
 

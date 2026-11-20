@@ -8,15 +8,15 @@ enum MotivoWhatsapp { pago, activar, comprobante, bloqueado }
 class WhatsappService {
   WhatsappService(this._perfil);
   final PerfilRepository _perfil;
-  String? _numero;
+  String? _numero; // el último que dio la API, por si no hay red
 
+  /// Se pide cada vez: soporte puede cambiar el número desde la app.
   Future<String> _numeroAdmin() async {
-    if (_numero != null) return _numero!;
     try {
       final n = (await _perfil.config())['whatsappAdmin'] as String?;
       if (n != null && n.isNotEmpty) return _numero = n;
     } catch (_) {}
-    return AppConstants.whatsappAdminDefault;
+    return _numero ?? AppConstants.whatsappAdminDefault;
   }
 
   /// Abre WhatsApp con el chat de la admin y un mensaje ya escrito.
